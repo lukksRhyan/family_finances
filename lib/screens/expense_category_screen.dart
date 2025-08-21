@@ -115,7 +115,8 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
             ElevatedButton(
               onPressed: () {
                 // Aqui você pode salvar o gasto, incluindo o título
-                Navigator.of(context).pop();
+                // Remova ou comente a linha abaixo:
+                // Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,

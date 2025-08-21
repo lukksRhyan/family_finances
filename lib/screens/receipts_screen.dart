@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../models/finance_state.dart';
+import '../models/receipt.dart';
 
 class ReceiptsScreen extends StatefulWidget {
   const ReceiptsScreen({super.key});
@@ -8,20 +12,10 @@ class ReceiptsScreen extends StatefulWidget {
 }
 
 class _ReceiptsScreenState extends State<ReceiptsScreen> {
-  List<Map<String, String>> _receipts = [
-    {'title': 'Salário', 'value': 'R\$ 5.000,00'},
-    {'title': 'Rendimentos', 'value': 'R\$ 20,00'},
-  ];
-
-  void _addReceipt(String title, String value) {
-    setState(() {
-      _receipts.add({'title': title, 'value': value});
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF2A8782);
+    final financeState = Provider.of<FinanceState>(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Receitas')),
@@ -31,13 +25,13 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'R\$ ${(_receipts.fold<num>(0, (sum, item) => sum + (double.tryParse(item['value']!.replaceAll(RegExp(r'[^\d,]'), '').replaceAll(',', '.')) ?? 0))).toStringAsFixed(2)}',
+              'R\$ ${financeState.totalReceitas.toStringAsFixed(2)}',
               style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             const Text('Receitas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
             const Divider(),
-            ..._receipts.map((item) => _buildReceiptItem(item['title']!, item['value']!)),
+            ...financeState.receipts.map((item) => _buildReceiptItem(item.title, item.value.toStringAsFixed(2))),
           ],
         ),
       ),
@@ -51,6 +45,14 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
+  }
+
+  void _addReceipt(String title, String value) {
+    final receipt = Receipt(
+      title: title,
+      value: double.tryParse(value.replaceAll(',', '.')) ?? 0,
+    );
+    Provider.of<FinanceState>(context, listen: false).addReceipt(receipt);
   }
 
   Widget _buildReceiptItem(String title, String value) {

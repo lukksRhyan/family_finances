@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/expense_category.dart';
+import '../models/finance_state.dart';
+import '../models/expense.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -11,6 +14,7 @@ class AddExpenseScreen extends StatefulWidget {
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
 
   List<ExpenseCategory> _categories = [
     ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
@@ -45,6 +49,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _buildTextField(label: 'Título', hint: 'Título da despesa', controller: _titleController),
+            const SizedBox(height: 16),
             _buildTextField(label: 'Valor', hint: '0,00', controller: _valueController),
             const SizedBox(height: 16),
             _buildCategorySelector(context),
@@ -53,8 +59,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             const Spacer(),
             ElevatedButton(
               onPressed: () {
-                // Salvar despesa aqui
-                Navigator.of(context).pop();
+                if (_titleController.text.isNotEmpty &&
+                    _valueController.text.isNotEmpty &&
+                    _selectedCategory != null) {
+                  final expense = Expense(
+                    title: _titleController.text,
+                    value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
+                    category: _selectedCategory!,
+                    note: _noteController.text,
+                  );
+                  Provider.of<FinanceState>(context, listen: false).addExpense(expense);
+                  // Limpar campos ou mostrar mensagem
+                  _titleController.clear();
+                  _valueController.clear();
+                  _noteController.clear();
+                  setState(() => _selectedCategory = null);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Gasto salvo!')),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,

@@ -19,7 +19,6 @@ class _MainScreenState extends State<MainScreen> {
     ReceiptsScreen(),
     ShoppingListScreen(),
     OverviewScreen(),
-    AddExpenseWithCategoryScreen(), // Nova tela
   ];
 
   void _onItemTapped(int index) {
@@ -46,10 +45,7 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.person),
             label: 'Visão Geral',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.category),
-            label: 'Categorias',
-          ),
+         
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

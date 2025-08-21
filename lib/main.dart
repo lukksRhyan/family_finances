@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'models/finance_state.dart';
 import 'screens/main_screen.dart';
 
 void main() {
-  runApp(const FinancialManagerApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => FinanceState(),
+      child: const FinancialManagerApp(),
+    ),
+  );
 }
 
 class FinancialManagerApp extends StatelessWidget {
