@@ -1,9 +1,10 @@
-import 'package:family_finances/models/expense_category.dart';
+import 'package:family_finances/main.dart';
+import 'package:family_finances/screens/add_expense_screen.dart';
 import 'package:flutter/material.dart';
 import 'receipts_screen.dart';
 import 'shopping_list_screen.dart';
 import 'overview_screen.dart';
-import 'expense_category_screen.dart';
+
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -17,6 +18,7 @@ class _MainScreenState extends State<MainScreen> {
 
   static const List<Widget> _screens = <Widget>[
     ReceiptsScreen(),
+    AddExpenseScreen(),
     ShoppingListScreen(),
     OverviewScreen(),
   ];
@@ -45,7 +47,10 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.person),
             label: 'Visão Geral',
           ),
-         
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add),
+            label: 'Adicionar Despesa',
+          ),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,

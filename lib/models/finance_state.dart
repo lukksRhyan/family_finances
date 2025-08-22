@@ -21,4 +21,7 @@ class FinanceState extends ChangeNotifier {
   double get totalReceitas {
     return receipts.fold(0, (sum, item) => sum + item.value);
   }
+  double get totalDespesas {
+    return expenses.fold(0, (sum, item) => sum + item.value);
+  }
 }

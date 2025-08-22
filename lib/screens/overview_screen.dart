@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../models/finance_state.dart';
+import '../models/expense.dart';
+import '../models/receipt.dart';
 
 class OverviewScreen extends StatelessWidget {
   const OverviewScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final financeState = Provider.of<FinanceState>(context);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Visão Geral')),
       body: SingleChildScrollView(
@@ -13,32 +19,46 @@ class OverviewScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('R\$ 2.150,00', style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+            // Saldo total
+            Text(
+              'R\$ ${(financeState.totalReceitas - financeState.totalDespesas).toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 24),
-            _buildBalanceSection(),
+            _buildBalanceSection(financeState),
             const SizedBox(height: 24),
-            _buildSectionTitle('Depesas'),
-            _buildInfoRow('3.050,0', '3.050,00'),
+            _buildSectionTitle('Despesas'),
+            ...financeState.expenses.map((expense) => _buildExpenseRow(expense)),
             const Divider(height: 32),
-            _buildSectionTitle('Relatórios'),
-            _buildInfoRow('Alimentação', 'R\$ 1.200,00'),
-            _buildInfoRow('Morádia', 'R\$ 1.000,00'),
-            _buildInfoRow('Transporte', 'R\$ 50,00'),
+            _buildSectionTitle('Receitas'),
+            ...financeState.receipts.map((receipt) => _buildReceiptRow(receipt)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBalanceSection() {
+  Widget _buildBalanceSection(FinanceState financeState) {
+    final totalReceitas = financeState.totalReceitas;
+    final totalDespesas = financeState.totalDespesas;
+    final receitasPercent = totalReceitas + totalDespesas == 0
+        ? 0
+        : (totalReceitas / (totalReceitas + totalDespesas)) * 100;
+    final despesasPercent = totalReceitas + totalDespesas == 0
+        ? 0
+        : (totalDespesas / (totalReceitas + totalDespesas)) * 100;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Balance', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('R\$ 5.200,000', style: TextStyle(fontSize: 16, color: Colors.grey)),
+            const Text('Receitas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('R\$ ${totalReceitas.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, color: Colors.green)),
+            const SizedBox(height: 8),
+            const Text('Despesas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('R\$ ${totalDespesas.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, color: Colors.red)),
           ],
         ),
         SizedBox(
@@ -47,8 +67,8 @@ class OverviewScreen extends StatelessWidget {
           child: PieChart(
             PieChartData(
               sections: [
-                PieChartSectionData(color: Color(0xFF2A8782), value: 60, radius: 15, showTitle: false),
-                PieChartSectionData(color: Colors.teal, value: 40, radius: 15, showTitle: false),
+                PieChartSectionData(color: Colors.green, value: receitasPercent.toDouble(), radius: 15, showTitle: false),
+                PieChartSectionData(color: Colors.red, value: despesasPercent.toDouble(), radius: 15, showTitle: false),
               ],
               centerSpaceRadius: 25,
             ),
@@ -59,18 +79,31 @@ class OverviewScreen extends StatelessWidget {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey));
-  }
-
-  Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 16)),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-        ],
+      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
+    );
+  }
+
+  Widget _buildExpenseRow(Expense expense) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: ListTile(
+        leading: Icon(expense.category.icon, color: Colors.red),
+        title: Text(expense.title),
+        subtitle: Text(expense.note),
+        trailing: Text('R\$ ${expense.value.toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
+      ),
+    );
+  }
+
+  Widget _buildReceiptRow(Receipt receipt) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: ListTile(
+        leading: const Icon(Icons.attach_money, color: Colors.green),
+        title: Text(receipt.title),
+        trailing: Text('R\$ ${receipt.value.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green)),
       ),
     );
   }
