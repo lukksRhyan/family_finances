@@ -37,7 +37,11 @@ class _MainScreenState extends State<MainScreen> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
-            label: 'Receitas',
+            label: 'Receitas',  
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add),
+            label: 'Adicionar Despesa',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_cart),
@@ -47,10 +51,7 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.person),
             label: 'Visão Geral',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add),
-            label: 'Adicionar Despesa',
-          ),
+          
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
