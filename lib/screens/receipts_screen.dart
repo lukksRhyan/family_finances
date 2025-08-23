@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/finance_state.dart';
@@ -12,6 +13,10 @@ class ReceiptsScreen extends StatefulWidget {
 }
 
 class _ReceiptsScreenState extends State<ReceiptsScreen> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _valueController = TextEditingController();
+  DateTime _selectedDate = DateTime.now(); // NOVO
+
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF2A8782);
@@ -22,93 +27,133 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               'R\$ ${financeState.totalReceitas.toStringAsFixed(2)}',
               style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-            const Text('Receitas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
+            _buildTextField(label: 'Título', hint: 'Título da receita', controller: _titleController),
+            const SizedBox(height: 16),
+            _buildTextField(label: 'Valor', hint: '0,00', controller: _valueController),
+            const SizedBox(height: 16),
+            _buildDatePicker(context), // NOVO
+            const Spacer(),
+            ElevatedButton(
+              onPressed: () {
+                if (_titleController.text.isNotEmpty &&
+                    _valueController.text.isNotEmpty) {
+                  final receipt = Receipt(
+                    title: _titleController.text,
+                    value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
+                    date: _selectedDate, // NOVO
+                  );
+                  Provider.of<FinanceState>(context, listen: false).addReceipt(receipt);
+                  _titleController.clear();
+                  _valueController.clear();
+                  setState(() {
+                    _selectedDate = DateTime.now();
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Receita salva!')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Salvar', style: TextStyle(fontSize: 18, color: Colors.white)),
+            ),
+            const SizedBox(height: 24),
+            const Text('Receitas cadastradas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
             const Divider(),
-            ...financeState.receipts.map((item) => _buildReceiptItem(item.title, item.value.toStringAsFixed(2))),
+            Expanded(
+              child: ListView(
+                children: financeState.receipts
+                    .map((item) => _buildReceiptItem(item.title, item.value.toStringAsFixed(2), item.date))
+                    .toList(),
+              ),
+            ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(context, MaterialPageRoute(
-            builder: (context) => AddReceiptScreen(onAdd: _addReceipt),
-          ));
-        },
-        backgroundColor: primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 
-  void _addReceipt(String title, String value) {
-    final receipt = Receipt(
-      title: title,
-      value: double.tryParse(value.replaceAll(',', '.')) ?? 0,
+  Widget _buildTextField({required String label, required String hint, required TextEditingController controller, int maxLines = 1}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
+            ),
+          ),
+        ),
+      ],
     );
-    Provider.of<FinanceState>(context, listen: false).addReceipt(receipt);
   }
 
-  Widget _buildReceiptItem(String title, String value) {
+  Widget _buildDatePicker(BuildContext context) {
+    return Row(
+      children: [
+        const Icon(Icons.calendar_today, size: 20),
+        const SizedBox(width: 8),
+        Text('Data: ${DateFormat('dd/MM/yyyy').format(_selectedDate)}'),
+        const SizedBox(width: 8),
+        TextButton(
+          onPressed: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _selectedDate,
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2100),
+            );
+            if (picked != null) {
+              setState(() {
+                _selectedDate = picked;
+              });
+            }
+          },
+          child: const Text('Alterar'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReceiptItem(String title, String value, DateTime date) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16)),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontSize: 16)),
+              Text(DateFormat('dd/MM/yyyy').format(date), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+          Text('R\$ $value', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
         ],
-      ),
-    );
-  }
-}
-
-class AddReceiptScreen extends StatefulWidget {
-  final Function(String, String) onAdd;
-  const AddReceiptScreen({super.key, required this.onAdd});
-
-  @override
-  State<AddReceiptScreen> createState() => _AddReceiptScreenState();
-}
-
-class _AddReceiptScreenState extends State<AddReceiptScreen> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _valueController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Adicionar Receita')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Título'),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _valueController,
-              decoration: const InputDecoration(labelText: 'Valor'),
-              keyboardType: TextInputType.number,
-            ),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: () {
-                widget.onAdd(_titleController.text, _valueController.text);
-                Navigator.of(context).pop();
-              },
-              child: const Text('Salvar'),
-            ),
-          ],
-        ),
       ),
     );
   }

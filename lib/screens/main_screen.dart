@@ -1,9 +1,9 @@
 import 'package:family_finances/main.dart';
 import 'package:family_finances/screens/add_expense_screen.dart';
+import 'package:family_finances/screens/add_transaction_screen.dart';
 import 'package:flutter/material.dart';
-import 'receipts_screen.dart';
-import 'shopping_list_screen.dart';
 import 'overview_screen.dart';
+import 'settings_screen.dart';
 
 
 class MainScreen extends StatefulWidget {
@@ -17,10 +17,8 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   static const List<Widget> _screens = <Widget>[
-    ReceiptsScreen(),
-    AddExpenseScreen(),
-    ShoppingListScreen(),
     OverviewScreen(),
+    SettingsScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -29,32 +27,48 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  void _openAddTransaction(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const AddTransactionScreen(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens.elementAt(_selectedIndex),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Receitas',  
+      bottomNavigationBar: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+          BottomNavigationBar(
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home),
+                label: 'Visão Geral',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings),
+                label: 'Configurações',
+              ),
+            ],
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add),
-            label: 'Adicionar Despesa',
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: FloatingActionButton(
+                onPressed: () => _openAddTransaction(context),
+                backgroundColor: const Color(0xFF2A8782),
+                child: const Icon(Icons.add, size: 32, color: Colors.white),
+              ),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Compras',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Visão Geral',
-          ),
-          
         ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
       ),
     );
   }

@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart'; // Adicione este import para formatar datas
-import '../models/expense_category.dart';
+import 'package:intl/intl.dart';
 import '../models/finance_state.dart';
+import '../models/expense_category.dart';
 import '../models/expense.dart';
+import '../models/receipt.dart';
 
-class AddExpenseScreen extends StatefulWidget {
-  const AddExpenseScreen({super.key});
+class AddTransactionScreen extends StatefulWidget {
+  const AddTransactionScreen({super.key});
 
   @override
-  State<AddExpenseScreen> createState() => _AddExpenseScreenState();
+  State<AddTransactionScreen> createState() => _AddTransactionScreenState();
 }
 
-class _AddExpenseScreenState extends State<AddExpenseScreen> {
+class _AddTransactionScreenState extends State<AddTransactionScreen> {
+  final TextEditingController _titleController = TextEditingController();
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
-  final TextEditingController _titleController = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
 
-  DateTime _selectedDate = DateTime.now(); // NOVO
+  bool _isExpense = true;
 
   List<ExpenseCategory> _categories = [
     ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
@@ -38,53 +40,77 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF2A8782);
-    final financeState = Provider.of<FinanceState>(context);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Adicionar Despesa'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+        left: 16,
+        right: 16,
+        top: 24,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildTextField(label: 'Título', hint: 'Título da despesa', controller: _titleController),
+            Center(
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  ChoiceChip(
+                    label: const Text('Gasto'),
+                    selected: _isExpense,
+                    onSelected: (selected) {
+                      setState(() => _isExpense = true);
+                    },
+                    selectedColor: Colors.red.shade100,
+                  ),
+                  ChoiceChip(
+                    label: const Text('Ganho'),
+                    selected: !_isExpense,
+                    onSelected: (selected) {
+                      setState(() => _isExpense = false);
+                    },
+                    selectedColor: Colors.green.shade100,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(label: 'Título', hint: _isExpense ? 'Título da despesa' : 'Título do ganho', controller: _titleController),
             const SizedBox(height: 16),
             _buildTextField(label: 'Valor', hint: '0,00', controller: _valueController),
             const SizedBox(height: 16),
-            _buildCategorySelector(context),
+            if (_isExpense) _buildCategorySelector(context),
+            if (_isExpense) const SizedBox(height: 16),
+            if (_isExpense) _buildTextField(label: 'Nota', hint: 'Adicionar nota', controller: _noteController, maxLines: 3),
             const SizedBox(height: 16),
-            _buildTextField(label: 'Nota', hint: 'Adicionar nota', controller: _noteController, maxLines: 3),
-            const SizedBox(height: 16),
-            _buildDatePicker(context), // NOVO
-            const Spacer(),
+            _buildDatePicker(context),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
                 if (_titleController.text.isNotEmpty &&
                     _valueController.text.isNotEmpty &&
-                    _selectedCategory != null) {
-                  final expense = Expense(
-                    title: _titleController.text,
-                    value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
-                    category: _selectedCategory!,
-                    note: _noteController.text,
-                    date: _selectedDate, // NOVO
-                  );
-                  Provider.of<FinanceState>(context, listen: false).addExpense(expense);
-                  _titleController.clear();
-                  _valueController.clear();
-                  _noteController.clear();
-                  setState(() {
-                    _selectedCategory = null;
-                    _selectedDate = DateTime.now();
-                  });
+                    (_isExpense ? _selectedCategory != null : true)) {
+                  if (_isExpense) {
+                    final expense = Expense(
+                      title: _titleController.text,
+                      value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
+                      category: _selectedCategory!,
+                      note: _noteController.text,
+                      date: _selectedDate,
+                    );
+                    Provider.of<FinanceState>(context, listen: false).addExpense(expense);
+                  } else {
+                    final receipt = Receipt(
+                      title: _titleController.text,
+                      value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
+                      date: _selectedDate,
+                    );
+                    Provider.of<FinanceState>(context, listen: false).addReceipt(receipt);
+                  }
+                  Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Gasto salvo!')),
+                    SnackBar(content: Text(_isExpense ? 'Despesa salva!' : 'Receita salva!')),
                   );
                 }
               },
@@ -95,18 +121,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Salvar', style: TextStyle(fontSize: 18, color: Colors.white)),
+              child: Text(_isExpense ? 'Salvar despesa' : 'Salvar receita', style: const TextStyle(fontSize: 18, color: Colors.white)),
             ),
-            const SizedBox(height: 24),
-            const Text('Despesas cadastradas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
-            const Divider(),
-            Expanded(
-              child: ListView(
-                children: financeState.expenses
-                    .map((item) => _buildExpenseItem(item))
-                    .toList(),
-              ),
-            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -213,8 +230,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               spacing: 8,
               children: icons.map((icon) => GestureDetector(
                 onTap: () {
-                  _selectedIcon = icon;
-                  setState(() {});
+                  setState(() {
+                    _selectedIcon = icon;
+                  });
                 },
                 child: Container(
                   decoration: BoxDecoration(
@@ -274,25 +292,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           child: const Text('Alterar'),
         ),
       ],
-    );
-  }
-
-  Widget _buildExpenseItem(Expense expense) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(expense.category.icon, color: Colors.grey),
-              const SizedBox(width: 8),
-              Text(expense.title, style: const TextStyle(fontSize: 16)),
-            ],
-          ),
-          Text('R\$ ${expense.value.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-        ],
-      ),
     );
   }
 }

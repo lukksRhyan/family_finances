@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../models/finance_state.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
+import 'shopping_list_screen.dart';
 
 class OverviewScreen extends StatelessWidget {
   const OverviewScreen({super.key});
@@ -34,6 +35,16 @@ class OverviewScreen extends StatelessWidget {
             ...financeState.receipts.map((receipt) => _buildReceiptRow(receipt)),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(
+            builder: (context) => const ShoppingListScreen(),
+          ));
+        },
+        backgroundColor: const Color(0xFF2A8782),
+        child: const Icon(Icons.shopping_cart, color: Colors.white),
+        tooltip: 'Abrir lista de compras',
       ),
     );
   }
