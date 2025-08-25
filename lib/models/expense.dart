@@ -6,13 +6,15 @@ class Expense {
   final double value;
   final ExpenseCategory category;
   final String note;
-  final DateTime date; // NOVO
+  final DateTime date;
 
   Expense({
     required this.title,
     required this.value,
     required this.category,
     required this.note,
-    required this.date, // NOVO
+    required this.date,
   });
+
+  bool get isFuture => date.isAfter(DateTime.now());
 }

@@ -61,4 +61,20 @@ class FinanceState extends ChangeNotifier {
   double get totalDespesas {
     return expenses.fold(0, (sum, item) => sum + item.value);
   }
+
+  double get totalReceitasAtuais {
+    return receipts.where((r) => !r.isFuture).fold(0, (sum, item) => sum + item.value);
+  }
+
+  double get totalDespesasAtuais {
+    return expenses.where((e) => !e.isFuture).fold(0, (sum, item) => sum + item.value);
+  }
+
+  double get totalAReceber {
+    return receipts.where((r) => r.isFuture).fold(0, (sum, item) => sum + item.value);
+  }
+
+  double get totalAPagar {
+    return expenses.where((e) => e.isFuture).fold(0, (sum, item) => sum + item.value);
+  }
 }

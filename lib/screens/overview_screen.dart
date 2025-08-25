@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../models/finance_state.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
@@ -20,13 +21,16 @@ class OverviewScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Saldo total
+            // Saldo atual
             Text(
-              'R\$ ${(financeState.totalReceitas - financeState.totalDespesas).toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+              'Saldo atual: R\$ ${(financeState.totalReceitasAtuais - financeState.totalDespesasAtuais).toStringAsFixed(2)}',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             _buildBalanceSection(financeState),
+            const SizedBox(height: 24),
+            _buildSectionTitle('A Receber / A Pagar'),
+            _buildFutureBalanceSection(financeState),
             const SizedBox(height: 24),
             _buildSectionTitle('Despesas'),
             ...financeState.expenses.map((expense) => _buildExpenseRow(expense)),
@@ -50,14 +54,10 @@ class OverviewScreen extends StatelessWidget {
   }
 
   Widget _buildBalanceSection(FinanceState financeState) {
-    final totalReceitas = financeState.totalReceitas;
-    final totalDespesas = financeState.totalDespesas;
-    final receitasPercent = totalReceitas + totalDespesas == 0
-        ? 0
-        : (totalReceitas / (totalReceitas + totalDespesas)) * 100;
-    final despesasPercent = totalReceitas + totalDespesas == 0
-        ? 0
-        : (totalDespesas / (totalReceitas + totalDespesas)) * 100;
+    final receitas = financeState.totalReceitasAtuais;
+    final despesas = financeState.totalDespesasAtuais;
+    final receitasPercent = receitas + despesas == 0 ? 0 : (receitas / (receitas + despesas)) * 100;
+    final despesasPercent = receitas + despesas == 0 ? 0 : (despesas / (receitas + despesas)) * 100;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -65,11 +65,11 @@ class OverviewScreen extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Receitas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('R\$ ${totalReceitas.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, color: Colors.green)),
+            const Text('Receitas atuais', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('R\$ ${receitas.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, color: Colors.green)),
             const SizedBox(height: 8),
-            const Text('Despesas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('R\$ ${totalDespesas.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, color: Colors.red)),
+            const Text('Despesas atuais', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('R\$ ${despesas.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, color: Colors.red)),
           ],
         ),
         SizedBox(
@@ -80,6 +80,43 @@ class OverviewScreen extends StatelessWidget {
               sections: [
                 PieChartSectionData(color: Colors.green, value: receitasPercent.toDouble(), radius: 15, showTitle: false),
                 PieChartSectionData(color: Colors.red, value: despesasPercent.toDouble(), radius: 15, showTitle: false),
+              ],
+              centerSpaceRadius: 25,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFutureBalanceSection(FinanceState financeState) {
+    final aReceber = financeState.totalAReceber;
+    final aPagar = financeState.totalAPagar;
+    final total = aReceber + aPagar;
+    final aReceberPercent = total == 0 ? 0 : (aReceber / total) * 100;
+    final aPagarPercent = total == 0 ? 0 : (aPagar / total) * 100;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('A Receber', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('R\$ ${aReceber.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, color: Colors.green)),
+            const SizedBox(height: 8),
+            const Text('A Pagar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('R\$ ${aPagar.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, color: Colors.red)),
+          ],
+        ),
+        SizedBox(
+          height: 80,
+          width: 80,
+          child: PieChart(
+            PieChartData(
+              sections: [
+                PieChartSectionData(color: Colors.green, value: aReceberPercent.toDouble(), radius: 15, showTitle: false),
+                PieChartSectionData(color: Colors.red, value: aPagarPercent.toDouble(), radius: 15, showTitle: false),
               ],
               centerSpaceRadius: 25,
             ),
@@ -100,10 +137,10 @@ class OverviewScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: ListTile(
-        leading: Icon(expense.category.icon, color: Colors.red),
+        leading: Icon(expense.category.icon, color: expense.isFuture ? Colors.orange : Colors.red),
         title: Text(expense.title),
-        subtitle: Text(expense.note),
-        trailing: Text('R\$ ${expense.value.toStringAsFixed(2)}', style: const TextStyle(color: Colors.red)),
+        subtitle: Text(expense.isFuture ? 'A pagar em ${DateFormat('dd/MM/yyyy').format(expense.date)}' : DateFormat('dd/MM/yyyy').format(expense.date)),
+        trailing: Text('R\$ ${expense.value.toStringAsFixed(2)}', style: TextStyle(color: expense.isFuture ? Colors.orange : Colors.red)),
       ),
     );
   }
@@ -112,9 +149,10 @@ class OverviewScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: ListTile(
-        leading: const Icon(Icons.attach_money, color: Colors.green),
+        leading: Icon(Icons.attach_money, color: receipt.isFuture ? Colors.blue : Colors.green),
         title: Text(receipt.title),
-        trailing: Text('R\$ ${receipt.value.toStringAsFixed(2)}', style: const TextStyle(color: Colors.green)),
+        subtitle: Text(receipt.isFuture ? 'A receber em ${DateFormat('dd/MM/yyyy').format(receipt.date)}' : DateFormat('dd/MM/yyyy').format(receipt.date)),
+        trailing: Text('R\$ ${receipt.value.toStringAsFixed(2)}', style: TextStyle(color: receipt.isFuture ? Colors.blue : Colors.green)),
       ),
     );
   }
