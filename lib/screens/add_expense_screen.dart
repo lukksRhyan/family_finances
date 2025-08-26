@@ -19,7 +19,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   DateTime _selectedDate = DateTime.now(); // NOVO
 
-  List<ExpenseCategory> _categories = [
+  final List<ExpenseCategory> _categories = [
     ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
     ExpenseCategory(name: 'Moradia', icon: Icons.home),
     ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
@@ -147,7 +147,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         const Text('Categoria', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 8),
         DropdownButtonFormField<ExpenseCategory>(
-          value: _selectedCategory,
+          initialValue: _selectedCategory,
           items: [
             ..._categories.map((cat) => DropdownMenuItem(
               value: cat,
@@ -193,8 +193,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _showAddCategoryDialog(BuildContext context) {
-    final TextEditingController _nameController = TextEditingController();
-    IconData? _selectedIcon;
+    final TextEditingController nameController = TextEditingController();
+    IconData? selectedIcon;
     final icons = [Icons.fastfood, Icons.home, Icons.directions_car, Icons.sports_esports, Icons.shopping_cart, Icons.local_hospital, Icons.school];
 
     showDialog(
@@ -205,7 +205,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: _nameController,
+              controller: nameController,
               decoration: const InputDecoration(labelText: 'Nome'),
             ),
             const SizedBox(height: 16),
@@ -213,13 +213,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               spacing: 8,
               children: icons.map((icon) => GestureDetector(
                 onTap: () {
-                  _selectedIcon = icon;
+                  selectedIcon = icon;
                   setState(() {});
                 },
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _selectedIcon == icon ? Colors.teal : Colors.transparent,
+                      color: selectedIcon == icon ? Colors.teal : Colors.transparent,
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(8),
@@ -238,8 +238,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (_nameController.text.isNotEmpty && _selectedIcon != null) {
-                _addCategory(ExpenseCategory(name: _nameController.text, icon: _selectedIcon!));
+              if (nameController.text.isNotEmpty && selectedIcon != null) {
+                _addCategory(ExpenseCategory(name: nameController.text, icon: selectedIcon!));
                 Navigator.of(context).pop();
               }
             },
