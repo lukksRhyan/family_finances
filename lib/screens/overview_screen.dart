@@ -97,9 +97,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
             const SizedBox(height: 16),
             _buildDateFilter(context),
             const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
+
                 Container(
                   padding: const EdgeInsets.all(5),
                   decoration: SectionStyle(),
@@ -114,20 +112,9 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 ),
                 ),
                
-                const VerticalDivider(),
-                Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: SectionStyle(),
-                  child: Column(
-                  children: [
-                    _buildSectionTitle('A Receber / A Pagar'),
-                    _buildFutureBalanceSection(totalAReceber, totalAPagar),
-                    const SizedBox(height: 24),
-                  ],
-                ))
-              ],
-            ),
-    
+                const SizedBox(height: 5,),
+                _buildFutureBalanceSection(totalAReceber, totalAPagar),
+
 
             _buildSectionTitle('Despesas'),
             ...filteredExpenses.map((expense) => _buildExpenseRow(expense)),
@@ -154,7 +141,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
-      IconButton(onPressed: () {
+      IconButton(
+        color: Colors.grey[700],
+        highlightColor: Colors.grey[300],
+        onPressed: () {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ShoppingListScreen()),
@@ -244,8 +234,17 @@ class _OverviewScreenState extends State<OverviewScreen> {
     final total = aReceber + aPagar;
     final aReceberPercent = total == 0 ? 0 : (aReceber / total) * 100;
     final aPagarPercent = total == 0 ? 0 : (aPagar / total) * 100;
-
-    return Row(
+    if (total == 0.0){
+      return Container();
+    }
+    return Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: SectionStyle(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle('A Receber / A Pagar'),
+                    Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
@@ -282,7 +281,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
           ),
         ),
       ],
-    );
+    ),
+                    const SizedBox(height: 24),
+                  ],
+                ));
   }
 
   Widget _buildSectionTitle(String title) {
