@@ -1,5 +1,3 @@
-import 'package:family_finances/main.dart';
-import 'package:family_finances/screens/add_expense_screen.dart';
 import 'package:family_finances/screens/add_transaction_screen.dart';
 import 'package:flutter/material.dart';
 import 'overview_screen.dart';

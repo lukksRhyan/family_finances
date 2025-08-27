@@ -61,7 +61,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       );
     }
 
-    updateSelectedOption();
+    if (item.options.isNotEmpty) {
+      updateSelectedOption();
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -163,7 +165,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               label: const Text('Editar'),
               onPressed: () {
                 Navigator.push(context, MaterialPageRoute(
-                  builder: (context) => AddShoppingItemScreen(editItem: item),
+                  builder: (context) => AddShoppingItemScreen(editItem: item, editItemIndex: index),
                 ));
               },
             ),
@@ -176,7 +178,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
 class AddShoppingItemScreen extends StatefulWidget {
   final ShoppingItem? editItem;
-  const AddShoppingItemScreen({super.key, this.editItem});
+  final int? editItemIndex;
+  const AddShoppingItemScreen({super.key, this.editItem, this.editItemIndex});
 
   @override
   State<AddShoppingItemScreen> createState() => _AddShoppingItemScreenState();
@@ -306,8 +309,18 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
             ElevatedButton(
               onPressed: () {
                 if (_nameController.text.isNotEmpty) {
-                  final item = ShoppingItem(name: _nameController.text, options: _options);
-                  Provider.of<FinanceState>(context, listen: false).addShoppingItem(item);
+                  final financeState = Provider.of<FinanceState>(context, listen: false);
+                  final item = ShoppingItem(
+                    name: _nameController.text,
+                    options: _options,
+                    isChecked: widget.editItem?.isChecked ?? false,
+                  );
+
+                  if (widget.editItemIndex != null) {
+                    financeState.updateShoppingItem(widget.editItemIndex!, item);
+                  } else {
+                    financeState.addShoppingItem(item);
+                  }
                   Navigator.of(context).pop();
                 }
               },
@@ -319,3 +332,5 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
     );
   }
 }
+
+

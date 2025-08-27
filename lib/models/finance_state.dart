@@ -48,7 +48,12 @@ class FinanceState extends ChangeNotifier {
     }
     notifyListeners();
   }
-
+  void updateShoppingItem(int index, ShoppingItem item) {
+  if (index >= 0 && index < shoppingList.length) {
+    shoppingList[index] = item;
+    notifyListeners();
+  }
+}
   void toggleShoppingItemChecked(int index, bool value) {
     _shoppingList[index].isChecked = value;
     notifyListeners();

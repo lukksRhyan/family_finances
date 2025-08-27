@@ -143,6 +143,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
     children: [
       IconButton(
         color: Colors.grey[700],
+        iconSize: 40,
         highlightColor: Colors.grey[300],
         onPressed: () {
         Navigator.push(
