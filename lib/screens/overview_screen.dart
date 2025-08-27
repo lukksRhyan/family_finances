@@ -1,3 +1,4 @@
+import 'package:family_finances/styles/section_style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -78,13 +79,16 @@ class _OverviewScreenState extends State<OverviewScreen> {
         .fold(0.0, (sum, item) => sum + item.value);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Visão Geral')),
+      appBar: AppBar(title: const Text('Início')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+        
           children: [
 
+            const SizedBox(height: 16),
+            _buildButtomsRow(context),
             const SizedBox(height: 16),
             Text(
               'Saldo no período: R\$ ${(totalReceitasAtuais - totalDespesasAtuais).toStringAsFixed(2)}',
@@ -94,20 +98,11 @@ class _OverviewScreenState extends State<OverviewScreen> {
             _buildDateFilter(context),
             const SizedBox(height: 24),
             Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
+                  padding: const EdgeInsets.all(5),
+                  decoration: SectionStyle(),
                   child:  Column(
 
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,13 +115,16 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 ),
                
                 const VerticalDivider(),
-                Column(
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: SectionStyle(),
+                  child: Column(
                   children: [
                     _buildSectionTitle('A Receber / A Pagar'),
                     _buildFutureBalanceSection(totalAReceber, totalAPagar),
                     const SizedBox(height: 24),
                   ],
-                )
+                ))
               ],
             ),
     
@@ -152,9 +150,33 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
+ Widget _buildButtomsRow(BuildContext context){
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    children: [
+      IconButton(onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ShoppingListScreen()),
+        );
+      }, icon: const Icon(Icons.shopping_cart)),
+      ElevatedButton.icon(
+        onPressed: () {
+          // Ação para adicionar nova transação
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Adicionar Transação'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2A8782),
+        ),
+      ),
+    ],
+  );
+ }
+
   Widget _buildDateFilter(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         Text('Período: ', style: Theme.of(context).textTheme.titleMedium),
         TextButton(
