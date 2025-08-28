@@ -141,7 +141,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
-      IconButton(
+      IconButton.filled(
         color: Colors.grey[700],
         iconSize: 40,
         highlightColor: Colors.grey[300],
