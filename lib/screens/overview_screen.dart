@@ -1,4 +1,6 @@
+import 'package:family_finances/screens/add_transaction_screen.dart';
 import 'package:family_finances/styles/section_style.dart';
+import 'package:family_finances/widgets/row_option.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -145,26 +147,19 @@ class _OverviewScreenState extends State<OverviewScreen> {
   return Row(
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
-      IconButton.filled(
-        color: Colors.white,
-        iconSize: 40,
-        highlightColor: Colors.grey[300],
-        onPressed: () {
+      RowOption(title: "Lista de Compras", iconData: Icons.shopping_cart, onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ShoppingListScreen()),
         );
-      }, icon: const Icon(Icons.shopping_cart)),
-      ElevatedButton.icon(
-        onPressed: () {
-          // Ação para adicionar nova transação
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Adicionar Transação'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2A8782),
-        ),
-      ),
+      }),
+      RowOption(title: "Adicionar Transação", iconData: Icons.add, onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AddTransactionScreen()),
+        );
+      }),
+
     ],
   );
  }
