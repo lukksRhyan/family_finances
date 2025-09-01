@@ -79,12 +79,16 @@ class _OverviewScreenState extends State<OverviewScreen> {
         .fold(0.0, (sum, item) => sum + item.value);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Início')),
+      appBar: AppBar(
+        title: const Text('FamilyFinances'),
+        leading: const Icon(Icons.account_balance_wallet),
+
+        ),
+    
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-        
           children: [
 
             const SizedBox(height: 16),
@@ -131,8 +135,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
           ));
         },
         backgroundColor: const Color(0xFF2A8782),
-        child: const Icon(Icons.shopping_cart, color: Colors.white),
         tooltip: 'Abrir lista de compras',
+        child: const Icon(Icons.shopping_cart, color: Colors.white),
       ),
     );
   }
@@ -142,7 +146,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
     children: [
       IconButton.filled(
-        color: Colors.grey[700],
+        color: Colors.white,
         iconSize: 40,
         highlightColor: Colors.grey[300],
         onPressed: () {

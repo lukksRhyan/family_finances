@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'models/finance_state.dart';
 import 'screens/main_screen.dart';
-
+import 'styles/app_theme.dart';
 void main() {
   runApp(
     ChangeNotifierProvider(
@@ -27,26 +27,7 @@ class FinancialManagerApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('pt', 'BR')],
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: const Color(0xFF2A8782),
-        scaffoldBackgroundColor: const Color(0xFFF8F8F8),
-        fontFamily: 'sans-serif',
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF2A8782),
-          foregroundColor: Colors.white,
-          elevation: 0,
-          titleTextStyle: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'sans-serif',
-          ),
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          selectedItemColor: Color(0xFF2A8782),
-          unselectedItemColor: Colors.grey,
-          backgroundColor: Colors.white,
-        ),
-      ),
+      theme: AppTheme.appTheme,
       home: const MainScreen(),
     );
   }
