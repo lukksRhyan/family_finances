@@ -26,6 +26,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _isExpense = true;
   bool _validateValue() => double.tryParse(_valueController.text.replaceAll(',', '.')) != null;
 
+  bool _isRecurrent = false;
+  int _recurrentIntervalDays = 1; // adicionar cálculo para adicionar próximas cobranças.
+
   @override
   void initState(){
     super.initState();
@@ -132,7 +135,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const Text('Parcelado'),
               ],
             ),
+            
             if (_isInInstallments) _buildInstallmentsCard(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Checkbox(value: _isInInstallments, onChanged: (value) {
+              setState(() {
+                _isInInstallments = value ?? false;
+              });
+            }),
+            const Text('Parcelado'),
+              ],
+            ),
             if (_isExpense) _buildCategorySelector(context),
             if (_isExpense) const SizedBox(height: 16),
             if (_isExpense) _buildTextField(label: 'Nota', hint: 'Adicionar nota', controller: _noteController, maxLines: 3),
