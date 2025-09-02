@@ -22,10 +22,36 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final TextEditingController _installmentCountController = TextEditingController();
   bool _isInInstallments = false;
   DateTime _selectedDate = DateTime.now();
-
   bool _isExpense = true;
   bool _validateValue() => double.tryParse(_valueController.text.replaceAll(',', '.')) != null;
-  List<ExpenseCategory> _categories = [
+
+  @override
+  void initState(){
+    super.initState();
+    _valueController.addListener((){
+      setState(() {
+        
+      });
+    });
+  }
+
+  @override
+  void dispose(){
+    _valueController.removeListener(_onValueChange);
+    _valueController.dispose();
+    _titleController.dispose();
+    _noteController.dispose();
+    _installmentCountController.dispose();
+    super.dispose();
+  } 
+
+  void _onValueChange(){
+    setState(() {
+      
+    });
+  }
+
+  final List<ExpenseCategory> _categories = [
     ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
     ExpenseCategory(name: 'Moradia', icon: Icons.home),
     ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
@@ -183,7 +209,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         const Text('Categoria', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 8),
         DropdownButtonFormField<ExpenseCategory>(
-          value: _selectedCategory,
+          initialValue: _selectedCategory,
           items: [
             ..._categories.map((cat) => DropdownMenuItem(
               value: cat,
@@ -229,8 +255,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   void _showAddCategoryDialog(BuildContext context) {
-    final TextEditingController _nameController = TextEditingController();
-    IconData? _selectedIcon;
+    final TextEditingController nameController = TextEditingController();
+    IconData? selectedIcon;
     final icons = [Icons.fastfood, Icons.home, Icons.directions_car, Icons.sports_esports, Icons.shopping_cart, Icons.local_hospital, Icons.school];
 
     showDialog(
@@ -241,7 +267,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: _nameController,
+              controller: nameController,
               decoration: const InputDecoration(labelText: 'Nome'),
             ),
             const SizedBox(height: 16),
@@ -250,13 +276,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               children: icons.map((icon) => GestureDetector(
                 onTap: () {
                   setState(() {
-                    _selectedIcon = icon;
+                    selectedIcon = icon;
                   });
                 },
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: _selectedIcon == icon ? Colors.teal : Colors.transparent,
+                      color: selectedIcon == icon ? Colors.teal : Colors.transparent,
                       width: 2,
                     ),
                     borderRadius: BorderRadius.circular(8),
@@ -275,8 +301,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (_nameController.text.isNotEmpty && _selectedIcon != null) {
-                _addCategory(ExpenseCategory(name: _nameController.text, icon: _selectedIcon!));
+              if (nameController.text.isNotEmpty && selectedIcon != null) {
+                _addCategory(ExpenseCategory(name: nameController.text, icon: selectedIcon!));
                 Navigator.of(context).pop();
               }
             },

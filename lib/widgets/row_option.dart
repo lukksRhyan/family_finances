@@ -5,7 +5,7 @@ class RowOption extends StatelessWidget {
   final IconData iconData;
   final VoidCallback onTap;
 
-  const RowOption({
+  const RowOption({super.key, 
     required this.title,
     required this.iconData,
     required this.onTap,

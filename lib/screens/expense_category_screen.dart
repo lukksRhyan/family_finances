@@ -13,13 +13,13 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
-  List<ExpenseCategory> _basic_categories = [
+  final List<ExpenseCategory> _basic_categories = [
     ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
     ExpenseCategory(name: 'Moradia', icon: Icons.home),
     ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
     ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
   ];
-  List<ExpenseCategory> _custom_categories = [];
+  final List<ExpenseCategory> _custom_categories = [];
   ExpenseCategory? _selectedCategory;
 
   void _addCategory(ExpenseCategory category) {
@@ -30,8 +30,8 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
   }
 
   void _showAddCategoryDialog(BuildContext context) {
-    final TextEditingController _nameController = TextEditingController();
-    IconData? _selectedIcon;
+    final TextEditingController nameController = TextEditingController();
+    IconData? selectedIcon;
     final icons = [
       Icons.fastfood, Icons.home, Icons.directions_car, Icons.sports_esports,
       Icons.shopping_cart, Icons.local_hospital, Icons.school
@@ -46,7 +46,7 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
-                controller: _nameController,
+                controller: nameController,
                 decoration: const InputDecoration(labelText: 'Nome'),
               ),
               const SizedBox(height: 16),
@@ -55,13 +55,13 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
                 children: icons.map((icon) => GestureDetector(
                   onTap: () {
                     setStateDialog(() {
-                      _selectedIcon = icon;
+                      selectedIcon = icon;
                     });
                   },
                   child: Container(
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: _selectedIcon == icon ? Colors.teal : Colors.transparent,
+                        color: selectedIcon == icon ? Colors.teal : Colors.transparent,
                         width: 2,
                       ),
                       borderRadius: BorderRadius.circular(8),
@@ -80,8 +80,8 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
             ),
             ElevatedButton(
               onPressed: () {
-                if (_nameController.text.isNotEmpty && _selectedIcon != null) {
-                  _addCategory(ExpenseCategory(name: _nameController.text, icon: _selectedIcon!));
+                if (nameController.text.isNotEmpty && selectedIcon != null) {
+                  _addCategory(ExpenseCategory(name: nameController.text, icon: selectedIcon!));
                   Navigator.of(context).pop();
                 }
               },
@@ -167,7 +167,7 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
         const Text('Categoria', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 8),
         DropdownButtonFormField<ExpenseCategory>(
-          value: _selectedCategory,
+          initialValue: _selectedCategory,
           items: [
             ..._basic_categories.map((cat) => DropdownMenuItem(
               value: cat,

@@ -1,4 +1,3 @@
-import 'package:family_finances/screens/add_transaction_screen.dart';
 import 'package:family_finances/styles/section_style.dart';
 import 'package:family_finances/widgets/row_option.dart';
 import 'package:flutter/material.dart';
