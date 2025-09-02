@@ -153,12 +153,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
           MaterialPageRoute(builder: (context) => const ShoppingListScreen()),
         );
       }),
-      RowOption(title: "Adicionar Transação", iconData: Icons.add, onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const AddTransactionScreen()),
-        );
-      }),
+      
 
     ],
   );

@@ -6,6 +6,8 @@ class Expense {
   final ExpenseCategory category;
   final String note;
   final DateTime date;
+  final bool isInInstallments;
+  final int? installmentCount;
 
   Expense({
     required this.title,
@@ -13,6 +15,8 @@ class Expense {
     required this.category,
     required this.note,
     required this.date,
+    required this.isInInstallments,
+    this.installmentCount,
   });
 
   bool get isFuture => date.isAfter(DateTime.now());

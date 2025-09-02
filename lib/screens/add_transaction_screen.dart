@@ -1,3 +1,5 @@
+import 'package:family_finances/styles/app_colors.dart';
+import 'package:family_finances/styles/section_style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -17,10 +19,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  final TextEditingController _installmentCountController = TextEditingController();
+  bool _isInInstallments = false;
   DateTime _selectedDate = DateTime.now();
 
   bool _isExpense = true;
-
+  bool _validateValue() => double.tryParse(_valueController.text.replaceAll(',', '.')) != null;
   List<ExpenseCategory> _categories = [
     ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
     ExpenseCategory(name: 'Moradia', icon: Icons.home),
@@ -36,7 +40,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _selectedCategory = category;
     });
   }
-
+  
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF2A8782);
@@ -80,6 +84,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const SizedBox(height: 16),
             _buildTextField(label: 'Valor', hint: '0,00', controller: _valueController),
             const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Checkbox(value: _isInInstallments, onChanged: (value) {
+              setState(() {
+                _isInInstallments = value ?? false;
+              });
+            }),
+            const Text('Parcelado'),
+              ],
+            ),
+            if (_isInInstallments) _buildInstallmentsCard(),
             if (_isExpense) _buildCategorySelector(context),
             if (_isExpense) const SizedBox(height: 16),
             if (_isExpense) _buildTextField(label: 'Nota', hint: 'Adicionar nota', controller: _noteController, maxLines: 3),
@@ -98,6 +115,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       category: _selectedCategory!,
                       note: _noteController.text,
                       date: _selectedDate,
+                      isInInstallments: _isInInstallments,
+                      installmentCount: _isInInstallments ? int.tryParse(_installmentCountController.text) : null,
                     );
                     Provider.of<FinanceState>(context, listen: false).addExpense(expense);
                   } else {
@@ -294,4 +313,28 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ],
     );
   }
+
+  Widget _buildInstallmentsCard(){
+  if(!_validateValue()) return Container( decoration: SectionStyle(),padding: EdgeInsets.all(20) ,child: Text("Valor inválido!", style: TextStyle(color: AppColors.error, fontSize: 20),));
+  return Container(
+    decoration: SectionStyle(),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    
+      children: [
+        Column(
+          children: [
+            Text('Número de parcelas')
+          ],
+        ),
+        Column(
+          children: [
+            Text('Valor da parcela')
+          ],
+        )
+      ],
+    ),
+  );
 }
+}
+

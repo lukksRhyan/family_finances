@@ -13,18 +13,18 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
-  List<ExpenseCategory> _categories = [
+  List<ExpenseCategory> _basic_categories = [
     ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
     ExpenseCategory(name: 'Moradia', icon: Icons.home),
     ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
     ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
   ];
-
+  List<ExpenseCategory> _custom_categories = [];
   ExpenseCategory? _selectedCategory;
 
   void _addCategory(ExpenseCategory category) {
     setState(() {
-      _categories.add(category);
+      _basic_categories.add(category);
       _selectedCategory = category;
     });
   }
@@ -169,7 +169,7 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
         DropdownButtonFormField<ExpenseCategory>(
           value: _selectedCategory,
           items: [
-            ..._categories.map((cat) => DropdownMenuItem(
+            ..._basic_categories.map((cat) => DropdownMenuItem(
               value: cat,
               child: Row(
                 children: [
