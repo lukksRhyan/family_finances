@@ -21,6 +21,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final TextEditingController _noteController = TextEditingController();
   final TextEditingController _installmentCountController = TextEditingController();
   bool _isInInstallments = false;
+  final TextEditingController _installmentValueController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
   bool _isExpense = true;
   bool _validateValue() => double.tryParse(_valueController.text.replaceAll(',', '.')) != null;
@@ -30,15 +31,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     super.initState();
     _valueController.addListener((){
       setState(() {
-        
       });
+
     });
+    _installmentCountController.addListener(_updateInstallmentValue);
   }
 
   @override
   void dispose(){
     _valueController.removeListener(_onValueChange);
     _valueController.dispose();
+    _installmentCountController.removeListener(_updateInstallmentValue);
+    _installmentCountController.dispose();
     _titleController.dispose();
     _noteController.dispose();
     _installmentCountController.dispose();
@@ -46,8 +50,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   } 
 
   void _onValueChange(){
+    setState(() {});
+  }
+  void _updateInstallmentValue(){
     setState(() {
-      
+      final installmentCount = int.tryParse(_installmentCountController.text) ?? 1;
+      final totalValue = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0;
+      final installmentValue = totalValue / installmentCount;
+      _installmentValueController.text = installmentValue.toStringAsFixed(2);
     });
   }
 
@@ -342,20 +352,53 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   Widget _buildInstallmentsCard(){
   if(!_validateValue()) return Container( decoration: SectionStyle(),padding: EdgeInsets.all(20) ,child: Text("Valor inválido!", style: TextStyle(color: AppColors.error, fontSize: 20),));
+ 
+  double? totalValue = double.tryParse(_valueController.text.replaceAll(',', '.'));
+  int? installmentCount = int.tryParse(_installmentCountController.text);
+
+  double? installmentValue = totalValue != null && installmentCount != null && installmentCount > 0
+      ? totalValue / installmentCount
+      : 0.0;
+
   return Container(
+    padding: const EdgeInsets.all(16),
     decoration: SectionStyle(),
     child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
     
       children: [
         Column(
           children: [
-            Text('Número de parcelas')
+            Text('Número de parcelas'),
+            Row(
+              children: [
+                SizedBox(
+                  width: 50,
+                  child: TextField(
+                    controller: _installmentCountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      hintText: '1',
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
+                ),
+                const Text('x'),
+              ],
+            )
           ],
         ),
         Column(
           children: [
-            Text('Valor da parcela')
+            Text('Valor da parcela'),
+            Text(
+              _valueController.text.isNotEmpty
+                  ? 'R\$ ${installmentValue.toStringAsFixed(2)}'
+                  : 'R\$ 0,00',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         )
       ],
