@@ -201,7 +201,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         }
                         
                         final expense = Expense(
-                          title: '$title (Recorrência ${i + 1})',
+                          title: '$title (Mês ${newDate.month})',
                           value: value,
                           category: category!,
                           note: note,
