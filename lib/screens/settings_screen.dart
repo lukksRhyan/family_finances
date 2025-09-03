@@ -78,6 +78,7 @@ class SettingsScreen extends StatelessWidget {
         category: ExpenseCategory(name: e['category'], icon: Icons.category),
         note: e['note'],
         date: DateTime.parse(e['date']),
+        isRecurrent: e['isRecurrent'] ?? false,
         isInInstallments: e['isInInstallments'] ?? false,
         installmentCount: e['installmentCount'],
       ));

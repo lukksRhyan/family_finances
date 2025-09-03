@@ -130,6 +130,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 Checkbox(value: _isInInstallments, onChanged: (value) {
               setState(() {
                 _isInInstallments = value ?? false;
+                if(_isInInstallments) _isRecurrent = false;
               });
             }),
             const Text('Parcelado'),
@@ -141,14 +142,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Checkbox(value: _isInInstallments, onChanged: (value) {
+                Checkbox(value: _isRecurrent, onChanged: (value) {
               setState(() {
-                _isInInstallments = value ?? false;
+                _isRecurrent = value ?? false;
+                if(_isRecurrent) _isInInstallments = false;
               });
             }),
-            const Text('Parcelado'),
+            const Text('Recorrente'),
               ],
             ),
+            if (_isRecurrent) _buildRecurrencyCard(),
             if (_isExpense) _buildCategorySelector(context),
             if (_isExpense) const SizedBox(height: 16),
             if (_isExpense) _buildTextField(label: 'Nota', hint: 'Adicionar nota', controller: _noteController, maxLines: 3),
@@ -167,6 +170,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       category: _selectedCategory!,
                       note: _noteController.text,
                       date: _selectedDate,
+                      isRecurrent: _isRecurrent,
                       isInInstallments: _isInInstallments,
                       installmentCount: _isInInstallments ? int.tryParse(_installmentCountController.text) : null,
                     );
@@ -417,6 +421,59 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             ),
           ],
         )
+      ],
+    ),
+  );
+}
+
+Widget _buildRecurrencyCard(){
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: SectionStyle(),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Checkbox(value: _isRecurrent, onChanged: (value) {
+              setState(() {
+                _isRecurrent = value ?? false;
+              });
+            }),
+            const Text('Repetir mensalmente'),
+          ],
+        ),
+        if(_isRecurrent) Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            const Text('Intervalo de repetição (dias)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            TextField(
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: '30',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _recurrentIntervalDays = int.tryParse(value) ?? 1;
+                });
+              },
+            ),
+          ],
+        ),
       ],
     ),
   );

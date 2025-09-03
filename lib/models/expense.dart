@@ -6,6 +6,7 @@ class Expense {
   final ExpenseCategory category;
   final String note;
   final DateTime date;
+  final bool isRecurrent;
   final bool isInInstallments;
   final int? installmentCount;
 
@@ -15,6 +16,7 @@ class Expense {
     required this.category,
     required this.note,
     required this.date,
+    required this.isRecurrent,
     required this.isInInstallments,
     this.installmentCount,
   });
