@@ -8,6 +8,8 @@ import '../models/expense_category.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
 
+enum RecurrencyType { monthly, weekly, custom }
+
 class AddTransactionScreen extends StatefulWidget {
   const AddTransactionScreen({super.key});
 
@@ -20,6 +22,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   final TextEditingController _installmentCountController = TextEditingController();
+  final TextEditingController _recurrentIntervalController = TextEditingController();
   bool _isInInstallments = false;
   final TextEditingController _installmentValueController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
@@ -27,35 +30,34 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _validateValue() => double.tryParse(_valueController.text.replaceAll(',', '.')) != null;
 
   bool _isRecurrent = false;
-  int _recurrentIntervalDays = 1; // adicionar cálculo para adicionar próximas cobranças.
+  RecurrencyType? _selectedRecurrencyType;
+  int _selectedDayOfMonth = DateTime.now().day;
+  int _selectedDayOfWeek = DateTime.now().weekday;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
-    _valueController.addListener((){
-      setState(() {
-      });
-
-    });
+    _valueController.addListener(_updateInstallmentValue);
     _installmentCountController.addListener(_updateInstallmentValue);
+    _recurrentIntervalController.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
-  void dispose(){
-    _valueController.removeListener(_onValueChange);
+  void dispose() {
+    _valueController.removeListener(_updateInstallmentValue);
     _valueController.dispose();
     _installmentCountController.removeListener(_updateInstallmentValue);
     _installmentCountController.dispose();
+    _recurrentIntervalController.dispose();
     _titleController.dispose();
     _noteController.dispose();
-    _installmentCountController.dispose();
+    _installmentValueController.dispose();
     super.dispose();
-  } 
-
-  void _onValueChange(){
-    setState(() {});
   }
-  void _updateInstallmentValue(){
+
+  void _updateInstallmentValue() {
     setState(() {
       final installmentCount = int.tryParse(_installmentCountController.text) ?? 1;
       final totalValue = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0;
@@ -79,7 +81,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _selectedCategory = category;
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF2A8782);
@@ -128,27 +130,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Checkbox(value: _isInInstallments, onChanged: (value) {
-              setState(() {
-                _isInInstallments = value ?? false;
-                if(_isInInstallments) _isRecurrent = false;
-              });
-            }),
-            const Text('Parcelado'),
+                  setState(() {
+                    _isInInstallments = value ?? false;
+                    if (_isInInstallments) _isRecurrent = false;
+                  });
+                }),
+                const Text('Parcelado'),
               ],
             ),
-            
             if (_isInInstallments) _buildInstallmentsCard(),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Checkbox(value: _isRecurrent, onChanged: (value) {
-              setState(() {
-                _isRecurrent = value ?? false;
-                if(_isRecurrent) _isInInstallments = false;
-              });
-            }),
-            const Text('Recorrente'),
+                  setState(() {
+                    _isRecurrent = value ?? false;
+                    if (_isRecurrent) _isInInstallments = false;
+                  });
+                }),
+                const Text('Recorrente'),
               ],
             ),
             if (_isRecurrent) _buildRecurrencyCard(),
@@ -163,29 +164,81 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 if (_titleController.text.isNotEmpty &&
                     _valueController.text.isNotEmpty &&
                     (_isExpense ? _selectedCategory != null : true)) {
+                  final title = _titleController.text;
+                  final value = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0;
+                  final note = _noteController.text;
+                  final category = _selectedCategory;
+                  final financeState = Provider.of<FinanceState>(context, listen: false);
+
                   if (_isExpense) {
-                    final expense = Expense(
-                      title: _titleController.text,
-                      value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
-                      category: _selectedCategory!,
-                      note: _noteController.text,
-                      date: _selectedDate,
-                      isRecurrent: _isRecurrent,
-                      isInInstallments: _isInInstallments,
-                      installmentCount: _isInInstallments ? int.tryParse(_installmentCountController.text) : null,
-                    );
-                    Provider.of<FinanceState>(context, listen: false).addExpense(expense);
+                    if (_isInInstallments) {
+                      final installmentCount = int.tryParse(_installmentCountController.text) ?? 1;
+                      final installmentValue = value / installmentCount;
+                      for (int i = 0; i < installmentCount; i++) {
+                        final expense = Expense(
+                          title: '$title (${i + 1}/$installmentCount)',
+                          value: installmentValue,
+                          category: category!,
+                          note: note,
+                          date: DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDate.day),
+                          isRecurrent: false,
+                          isInInstallments: true,
+                          installmentCount: installmentCount,
+                        );
+                        financeState.addExpense(expense);
+                      }
+                    } else if (_isRecurrent) {
+                      int count = 10; // Crie 10 ocorrências para o exemplo
+                      for (int i = 0; i < count; i++) {
+                        DateTime newDate;
+                        if (_selectedRecurrencyType == RecurrencyType.monthly) {
+                          newDate = DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDayOfMonth);
+                        } else if (_selectedRecurrencyType == RecurrencyType.weekly) {
+                          newDate = _selectedDate.add(Duration(days: (7 * i) + (_selectedDayOfWeek - _selectedDate.weekday)));
+                        } else {
+                          final days = int.tryParse(_recurrentIntervalController.text) ?? 30;
+                          newDate = _selectedDate.add(Duration(days: i * days));
+                        }
+                        
+                        final expense = Expense(
+                          title: '$title (Recorrência ${i + 1})',
+                          value: value,
+                          category: category!,
+                          note: note,
+                          date: newDate,
+                          isRecurrent: true,
+                          isInInstallments: false,
+                          recurrencyType: _selectedRecurrencyType?.index,
+                          recurrentIntervalDays: _selectedRecurrencyType == RecurrencyType.custom 
+                            ? int.tryParse(_recurrentIntervalController.text)
+                            : null,
+                        );
+                        financeState.addExpense(expense);
+                      }
+                    } else {
+                      final expense = Expense(
+                        title: title,
+                        value: value,
+                        category: category!,
+                        note: note,
+                        date: _selectedDate,
+                        isRecurrent: false,
+                        isInInstallments: false,
+                      );
+                      financeState.addExpense(expense);
+                    }
                   } else {
                     final receipt = Receipt(
-                      title: _titleController.text,
-                      value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
+                      title: title,
+                      value: value,
                       date: _selectedDate,
                     );
-                    Provider.of<FinanceState>(context, listen: false).addReceipt(receipt);
+                    financeState.addReceipt(receipt);
                   }
+
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(_isExpense ? 'Despesa salva!' : 'Receita salva!')),
+                    SnackBar(content: Text(_isExpense ? 'Despesa(s) salva(s)!' : 'Receita salva!')),
                   );
                 }
               },
@@ -370,28 +423,33 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  Widget _buildInstallmentsCard(){
-  if(!_validateValue()) return Container( decoration: SectionStyle(),padding: EdgeInsets.all(20) ,child: Text("Valor inválido!", style: TextStyle(color: AppColors.error, fontSize: 20),));
- 
-  double? totalValue = double.tryParse(_valueController.text.replaceAll(',', '.'));
-  int? installmentCount = int.tryParse(_installmentCountController.text);
-
-  double? installmentValue = totalValue != null && installmentCount != null && installmentCount > 0
-      ? totalValue / installmentCount
-      : 0.0;
-
-  return Container(
-    padding: const EdgeInsets.all(16),
-    decoration: SectionStyle(),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+  Widget _buildInstallmentsCard() {
+    if (!_validateValue()) {
+      return Container(
+        decoration: SectionStyle(),
+        padding: const EdgeInsets.all(20),
+        child: Text("Valor inválido!", style: TextStyle(color: AppColors.error, fontSize: 20)),
+      );
+    }
     
-      children: [
-        Column(
-          children: [
-            Text('Número de parcelas'),
-            Row(
+    double? totalValue = double.tryParse(_valueController.text.replaceAll(',', '.'));
+    int? installmentCount = int.tryParse(_installmentCountController.text);
+
+    double? installmentValue = totalValue != null && installmentCount != null && installmentCount > 0
+        ? totalValue / installmentCount
+        : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: SectionStyle(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          Expanded(
+            child: Column(
               children: [
+                const Text('Número de parcelas'),
+                const SizedBox(height: 8),
                 SizedBox(
                   width: 50,
                   child: TextField(
@@ -399,84 +457,137 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       hintText: '1',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8),
                     ),
-                    onChanged: (value) {
-                      setState(() {});
-                    },
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                const Text('x'),
               ],
-            )
-          ],
-        ),
-        Column(
-          children: [
-            Text('Valor da parcela'),
-            Text(
-              _valueController.text.isNotEmpty
-                  ? 'R\$ ${installmentValue.toStringAsFixed(2)}'
-                  : 'R\$ 0,00',
-              style: TextStyle(fontWeight: FontWeight.bold),
             ),
-          ],
-        )
-      ],
-    ),
-  );
-}
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                const Text('Valor da parcela'),
+                const SizedBox(height: 8),
+                Text(
+                  'R\$ ${installmentValue?.toStringAsFixed(2).replaceAll('.', ',') ?? '0,00'}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
 
-Widget _buildRecurrencyCard(){
-  return Container(
-    padding: const EdgeInsets.all(16),
-    decoration: SectionStyle(),
-    child: Column(
+  Widget _buildRecurrencyCard() {
+    final List<String> daysOfWeek = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: SectionStyle(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Tipo de Recorrência', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Mensal'),
+                selected: _selectedRecurrencyType == RecurrencyType.monthly,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedRecurrencyType = RecurrencyType.monthly;
+                  });
+                },
+                selectedColor: Colors.teal.shade100,
+              ),
+              ChoiceChip(
+                label: const Text('Semanal'),
+                selected: _selectedRecurrencyType == RecurrencyType.weekly,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedRecurrencyType = RecurrencyType.weekly;
+                  });
+                },
+                selectedColor: Colors.teal.shade100,
+              ),
+              ChoiceChip(
+                label: const Text('Customizado'),
+                selected: _selectedRecurrencyType == RecurrencyType.custom,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedRecurrencyType = RecurrencyType.custom;
+                  });
+                },
+                selectedColor: Colors.teal.shade100,
+              ),
+            ],
+          ),
+          if (_selectedRecurrencyType == RecurrencyType.monthly) ...[
+            const SizedBox(height: 16),
+            _buildDaySelector('Dia do Mês', 31, (value) {
+              setState(() {
+                _selectedDayOfMonth = value;
+              });
+            }, _selectedDayOfMonth),
+          ],
+          if (_selectedRecurrencyType == RecurrencyType.weekly) ...[
+            const SizedBox(height: 16),
+            _buildDaySelector('Dia da Semana', 7, (value) {
+              setState(() {
+                _selectedDayOfWeek = value;
+              });
+            }, _selectedDayOfWeek),
+          ],
+          if (_selectedRecurrencyType == RecurrencyType.custom) ...[
+            const SizedBox(height: 16),
+            _buildTextField(label: 'Intervalo de repetição (dias)', hint: '30', controller: _recurrentIntervalController),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDaySelector(String label, int maxDay, ValueChanged<int> onChanged, int currentValue) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Checkbox(value: _isRecurrent, onChanged: (value) {
-              setState(() {
-                _isRecurrent = value ?? false;
-              });
-            }),
-            const Text('Repetir mensalmente'),
-          ],
-        ),
-        if(_isRecurrent) Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            const Text('Intervalo de repetição (dias)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-            TextField(
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: '30',
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _recurrentIntervalDays = int.tryParse(value) ?? 1;
-                });
-              },
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          value: currentValue,
+          items: List.generate(maxDay, (index) => index + 1).map((day) {
+            String label = day.toString();
+            if (maxDay == 7) {
+              final daysOfWeek = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+              label = daysOfWeek[day - 1];
+            }
+            return DropdownMenuItem(
+              value: day,
+              child: Text(label),
+            );
+          }).toList(),
+          onChanged: (day) {
+            if (day != null) {
+              onChanged(day);
+            }
+          },
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.shade300),
             ),
-          ],
+          ),
         ),
       ],
-    ),
-  );
+    );
+  }
 }
-}
-
