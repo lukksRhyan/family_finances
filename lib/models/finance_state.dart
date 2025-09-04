@@ -1,16 +1,32 @@
+import 'package:family_finances/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'expense.dart';
 import 'receipt.dart';
 import 'shopping_item.dart';
 
-class FinanceState extends ChangeNotifier {
-  final List<Expense> _expenses = [];
-  final List<Receipt> _receipts = [];
-  final List<ShoppingItem> _shoppingList = [];
-
+class FinanceState with ChangeNotifier {
+  List<Expense> _expenses = [];
+  List<Receipt> _receipts = [];
+  List<ShoppingItem> _shoppingList = [];
+  bool _isLoading = false;
   List<Expense> get expenses => List.unmodifiable(_expenses);
   List<Receipt> get receipts => List.unmodifiable(_receipts);
   List<ShoppingItem> get shoppingList => List.unmodifiable(_shoppingList);
+
+  FinanceState(){
+    loadData();
+  }
+
+  Future<void> loadData() async {
+    _isLoading = true;
+    notifyListeners();
+
+    _expenses = await DatabaseHelper.instance.getAllExpenses();
+    _receipts = await DatabaseHelper.instance.getAllReceipts();
+
+    _isLoading = false;
+    notifyListeners();
+  }
 
   void addExpense(Expense expense) {
     _expenses.add(expense);
