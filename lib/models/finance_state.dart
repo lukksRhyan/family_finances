@@ -9,9 +9,11 @@ class FinanceState with ChangeNotifier {
   List<Receipt> _receipts = [];
   List<ShoppingItem> _shoppingList = [];
   bool _isLoading = false;
+
   List<Expense> get expenses => List.unmodifiable(_expenses);
   List<Receipt> get receipts => List.unmodifiable(_receipts);
   List<ShoppingItem> get shoppingList => List.unmodifiable(_shoppingList);
+  bool get isLoading => _isLoading;
 
   FinanceState(){
     loadData();
@@ -23,79 +25,70 @@ class FinanceState with ChangeNotifier {
 
     _expenses = await DatabaseHelper.instance.getAllExpenses();
     _receipts = await DatabaseHelper.instance.getAllReceipts();
+    _shoppingList = await DatabaseHelper.instance.getAllShoppingItems();
 
     _isLoading = false;
     notifyListeners();
   }
 
-  void addExpense(Expense expense) {
-    _expenses.add(expense);
+  Future<void> addExpense(Expense expense) async {
+    final id = await DatabaseHelper.instance.createExpense(expense);
+    final newExpense = Expense(
+      id: id,
+      title: expense.title,
+      value: expense.value,
+      category: expense.category,
+      note: expense.note,
+      date: expense.date,
+      isRecurrent: expense.isRecurrent,
+      recurrencyId: expense.recurrencyId,
+      recurrencyType: expense.recurrencyType,
+      recurrentIntervalDays: expense.recurrentIntervalDays,
+      isInInstallments: expense.isInInstallments,
+      installmentCount: expense.installmentCount,
+    );
+    _expenses.add(newExpense);
     notifyListeners();
   }
 
-  void addReceipt(Receipt receipt) {
-    _receipts.add(receipt);
+  Future<void> addReceipt(Receipt receipt) async {
+    final id = await DatabaseHelper.instance.createReceipt(receipt);
+    final newReceipt = Receipt(
+      id: id,
+      title: receipt.title,
+      value: receipt.value,
+      date: receipt.date,
+    );
+    _receipts.add(newReceipt);
     notifyListeners();
   }
 
-  void addShoppingItem(ShoppingItem item) {
-    // Normaliza a descrição para comparação
-    String normalize(String s) => s.trim().toLowerCase().replaceAll(' ', '');
+  Future<void> addShoppingItem(ShoppingItem item) async {
+    final id = await DatabaseHelper.instance.createShoppingItem(item);
+    final newItem = ShoppingItem(
+      id: id,
+      name: item.name,
+      isChecked: item.isChecked,
+      options: item.options,
+    );
+    _shoppingList.add(newItem);
+    notifyListeners();
+  }
 
-    final existingList = _shoppingList.where(
-      (i) => normalize(i.name) == normalize(item.name),
-    ).toList();
-
-    if (existingList.isNotEmpty) {
-      final existing = existingList.first;
-      // Adiciona novas opções ao item existente, evitando duplicadas
-      for (var opt in item.options) {
-        bool alreadyExists = existing.options.any((o) =>
-          o.brand.trim().toLowerCase() == opt.brand.trim().toLowerCase() &&
-          o.store.trim().toLowerCase() == opt.store.trim().toLowerCase() &&
-          o.price == opt.price
-        );
-        if (!alreadyExists) {
-          existing.options.add(opt);
-        }
-      }
-    } else {
-      _shoppingList.add(item);
+  Future<void> updateShoppingItem(int index, ShoppingItem item) async {
+    if (index >= 0 && index < _shoppingList.length) {
+      await DatabaseHelper.instance.updateShoppingItem(item);
+      _shoppingList[index] = item;
+      notifyListeners();
     }
-    notifyListeners();
-  }
-  void updateShoppingItem(int index, ShoppingItem item) {
-  if (index >= 0 && index < shoppingList.length) {
-    shoppingList[index] = item;
-    notifyListeners();
-  }
-}
-  void toggleShoppingItemChecked(int index, bool value) {
-    _shoppingList[index].isChecked = value;
-    notifyListeners();
   }
 
-  double get totalReceitas {
-    return receipts.fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get totalDespesas {
-    return expenses.fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get totalReceitasAtuais {
-    return receipts.where((r) => !r.isFuture).fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get totalDespesasAtuais {
-    return expenses.where((e) => !e.isFuture).fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get totalAReceber {
-    return receipts.where((r) => r.isFuture).fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get totalAPagar {
-    return expenses.where((e) => e.isFuture).fold(0, (sum, item) => sum + item.value);
+  Future<void> toggleShoppingItemChecked(int index, bool value) async {
+    if (index >= 0 && index < _shoppingList.length) {
+      final item = _shoppingList[index];
+      item.isChecked = value;
+      await DatabaseHelper.instance.updateShoppingItem(item);
+      notifyListeners();
+    }
   }
 }

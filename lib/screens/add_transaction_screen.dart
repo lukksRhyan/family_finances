@@ -160,88 +160,88 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             _buildDatePicker(context),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
-                if (_titleController.text.isNotEmpty &&
-                    _valueController.text.isNotEmpty &&
-                    (_isExpense ? _selectedCategory != null : true)) {
-                  final title = _titleController.text;
-                  final value = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0;
-                  final note = _noteController.text;
-                  final category = _selectedCategory;
-                  final financeState = Provider.of<FinanceState>(context, listen: false);
+              onPressed: () async { // Adicionar 'async' aqui
+    if (_titleController.text.isNotEmpty &&
+        _valueController.text.isNotEmpty &&
+        (_isExpense ? _selectedCategory != null : true)) {
+      final title = _titleController.text;
+      final value = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0;
+      final note = _noteController.text;
+      final category = _selectedCategory;
+      final financeState = Provider.of<FinanceState>(context, listen: false);
 
-                  if (_isExpense) {
-                    if (_isInInstallments) {
-                      final installmentCount = int.tryParse(_installmentCountController.text) ?? 1;
-                      final installmentValue = value / installmentCount;
-                      for (int i = 0; i < installmentCount; i++) {
-                        final expense = Expense(
-                          title: '$title (${i + 1}/$installmentCount)',
-                          value: installmentValue,
-                          category: category!,
-                          note: note,
-                          date: DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDate.day),
-                          isRecurrent: false,
-                          isInInstallments: true,
-                          installmentCount: installmentCount,
-                        );
-                        financeState.addExpense(expense);
-                      }
-                    } else if (_isRecurrent) {
-                      int count = 10; // Crie 10 ocorrências para o exemplo
-                      for (int i = 0; i < count; i++) {
-                        DateTime newDate;
-                        if (_selectedRecurrencyType == RecurrencyType.monthly) {
-                          newDate = DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDayOfMonth);
-                        } else if (_selectedRecurrencyType == RecurrencyType.weekly) {
-                          newDate = _selectedDate.add(Duration(days: (7 * i) + (_selectedDayOfWeek - _selectedDate.weekday)));
-                        } else {
-                          final days = int.tryParse(_recurrentIntervalController.text) ?? 30;
-                          newDate = _selectedDate.add(Duration(days: i * days));
-                        }
-                        
-                        final expense = Expense(
-                          title: '$title (Mês ${newDate.month})',
-                          value: value,
-                          category: category!,
-                          note: note,
-                          date: newDate,
-                          isRecurrent: true,
-                          isInInstallments: false,
-                          recurrencyType: _selectedRecurrencyType?.index,
-                          recurrentIntervalDays: _selectedRecurrencyType == RecurrencyType.custom 
-                            ? int.tryParse(_recurrentIntervalController.text)
-                            : null,
-                        );
-                        financeState.addExpense(expense);
-                      }
-                    } else {
-                      final expense = Expense(
-                        title: title,
-                        value: value,
-                        category: category!,
-                        note: note,
-                        date: _selectedDate,
-                        isRecurrent: false,
-                        isInInstallments: false,
-                      );
-                      financeState.addExpense(expense);
-                    }
-                  } else {
-                    final receipt = Receipt(
-                      title: title,
-                      value: value,
-                      date: _selectedDate,
-                    );
-                    financeState.addReceipt(receipt);
-                  }
+      if (_isExpense) {
+        if (_isInInstallments) {
+          final installmentCount = int.tryParse(_installmentCountController.text) ?? 1;
+          final installmentValue = value / installmentCount;
+          for (int i = 0; i < installmentCount; i++) {
+            final expense = Expense(
+              title: '$title (${i + 1}/$installmentCount)',
+              value: installmentValue,
+              category: category!,
+              note: note,
+              date: DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDate.day),
+              isRecurrent: false,
+              isInInstallments: true,
+              installmentCount: installmentCount,
+            );
+            await financeState.addExpense(expense); // Adicionar 'await' aqui
+          }
+        } else if (_isRecurrent) {
+          int count = 10;
+          for (int i = 0; i < count; i++) {
+            DateTime newDate;
+            if (_selectedRecurrencyType == RecurrencyType.monthly) {
+              newDate = DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDayOfMonth);
+            } else if (_selectedRecurrencyType == RecurrencyType.weekly) {
+              newDate = _selectedDate.add(Duration(days: (7 * i) + (_selectedDayOfWeek - _selectedDate.weekday)));
+            } else {
+              final days = int.tryParse(_recurrentIntervalController.text) ?? 30;
+              newDate = _selectedDate.add(Duration(days: i * days));
+            }
+            
+            final expense = Expense(
+              title: '$title (Recorrência ${i + 1})',
+              value: value,
+              category: category!,
+              note: note,
+              date: newDate,
+              isRecurrent: true,
+              isInInstallments: false,
+              recurrencyType: _selectedRecurrencyType?.index,
+              recurrentIntervalDays: _selectedRecurrencyType == RecurrencyType.custom 
+                ? int.tryParse(_recurrentIntervalController.text)
+                : null,
+            );
+            await financeState.addExpense(expense); // Adicionar 'await' aqui
+          }
+        } else {
+          final expense = Expense(
+            title: title,
+            value: value,
+            category: category!,
+            note: note,
+            date: _selectedDate,
+            isRecurrent: false,
+            isInInstallments: false,
+          );
+          await financeState.addExpense(expense); // Adicionar 'await' aqui
+        }
+      } else {
+        final receipt = Receipt(
+          title: title,
+          value: value,
+          date: _selectedDate,
+        );
+        await financeState.addReceipt(receipt); // Adicionar 'await' aqui
+      }
 
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(_isExpense ? 'Despesa(s) salva(s)!' : 'Receita salva!')),
-                  );
-                }
-              },
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_isExpense ? 'Despesa(s) salva(s)!' : 'Receita salva!')),
+      );
+    }
+  },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 16),

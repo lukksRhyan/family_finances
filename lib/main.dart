@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart'; // Adicione esta linha
 import 'models/finance_state.dart';
 import 'screens/main_screen.dart';
 import 'styles/app_theme.dart';
+
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  sqfliteFfiInit(); // Adicione esta linha
+  databaseFactory = databaseFactoryFfi; // Adicione esta linha
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => FinanceState(),

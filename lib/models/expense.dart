@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'expense_category.dart';
 
 class Expense {
@@ -11,8 +10,8 @@ class Expense {
   final DateTime date;
   final bool isRecurrent;
   final int? recurrencyId;
-  final int? recurrencyType; // This will store the recurrence type (e.g., monthly, weekly, custom)
-  final int? recurrentIntervalDays; // This will store the custom interval in days
+  final int? recurrencyType;
+  final int? recurrentIntervalDays;
   final bool isInInstallments;
   final int? installmentCount;
 
@@ -26,46 +25,45 @@ class Expense {
     required this.isRecurrent,
     this.recurrencyId,
     this.recurrencyType,
-    this.recurrentIntervalDays, // Add the new field
+    this.recurrentIntervalDays,
     required this.isInInstallments,
     this.installmentCount,
   });
-  bool get isFuture => date.isAfter(DateTime.now());
 
-   Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap() {
     return {
       'id': id,
       'title': title,
       'value': value,
-      'categoryName': category.name,
-      'categoryIcon': category.icon.codePoint,
+      'category_name': category.name,
+      'category_icon': category.icon.codePoint,
       'note': note,
       'date': date.toIso8601String(),
-      'isRecurrent': isRecurrent ? 1 : 0,
-      'recurrencyId': recurrencyId,
-      'recurrencyType': recurrencyType,
-      'recurrentIntervalDays': recurrentIntervalDays,
-      'isInInstallments': isInInstallments ? 1 : 0,
-      'installmentCount': installmentCount,
+      'is_recurrent': isRecurrent ? 1 : 0,
+      'recurrency_id': recurrencyId,
+      'recurrency_type': recurrencyType,
+      'recurrent_interval_days': recurrentIntervalDays,
+      'is_in_installments': isInInstallments ? 1 : 0,
+      'installment_count': installmentCount,
     };
   }
 
-  // Cria um objeto Expense a partir de um Map do banco de dados
   static Expense fromMap(Map<String, dynamic> map) {
     return Expense(
-      id:map['id'],
+      id: map['id'],
       title: map['title'],
       value: map['value'],
-      category: ExpenseCategory(name: map['categoryName'], icon: IconData(map['categoryIcon'], fontFamily: 'MaterialIcons')),
+      category: ExpenseCategory(name: map['category_name'], icon: IconData(map['category_icon'], fontFamily: 'MaterialIcons')),
       note: map['note'],
       date: DateTime.parse(map['date']),
-      isRecurrent: map['isRecurrent'] == 1,
-      recurrencyId: map['recurrencyId'],
-      recurrencyType: map['recurrencyType'],
-      recurrentIntervalDays: map['recurrentIntervalDays'],
-      isInInstallments: map['isInInstallments'] == 1,
-      installmentCount: map['installmentCount'],
+      isRecurrent: map['is_recurrent'] == 1,
+      recurrencyId: map['recurrency_id'],
+      recurrencyType: map['recurrency_type'],
+      recurrentIntervalDays: map['recurrent_interval_days'],
+      isInInstallments: map['is_in_installments'] == 1,
+      installmentCount: map['installment_count'],
     );
   }
 
+  bool get isFuture => date.isAfter(DateTime.now());
 }
