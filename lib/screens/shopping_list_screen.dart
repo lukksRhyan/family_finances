@@ -229,7 +229,6 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
 
   @override
   Widget build(BuildContext context) {
-    int selectedOptionIndex = 0;
 
     return Scaffold(
       appBar: AppBar(title: Text(widget.editItem == null ? 'Adicionar Item' : 'Editar Item')),

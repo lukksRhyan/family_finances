@@ -66,25 +66,38 @@ class FinanceState with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> addShoppingItem(ShoppingItem item) async {
-    final id = await DatabaseHelper.instance.createShoppingItem(item);
-    final newItem = ShoppingItem(
-      id: id,
-      name: item.name,
-      isChecked: item.isChecked,
-      options: item.options,
-    );
-    _shoppingList.add(newItem);
+ void addShoppingItem(ShoppingItem item) {
+  String normalize(String s) => s.trim().toLowerCase().replaceAll(' ', '');
+
+  final existingItem = _shoppingList.firstWhere(
+    (element) => normalize(element.name) == normalize(item.name),
+    orElse: () => ShoppingItem(name: '', options: []),
+  );
+
+  if (existingItem.name.isNotEmpty) {
+    for (var opt in item.options) {
+      bool alreadyExists = existingItem.options.any((o) =>
+        o.brand.trim().toLowerCase() == opt.brand.trim().toLowerCase() &&
+        o.store.trim().toLowerCase() == opt.store.trim().toLowerCase() &&
+        o.price == opt.price
+      );
+      if (!alreadyExists) {
+        existingItem.options.add(opt);
+      }
+    }
+  } else {
+    _shoppingList.add(item);
+  }
+  notifyListeners();
+}
+
+void updateShoppingItem(int index, ShoppingItem item) {
+  if (index >= 0 && index < _shoppingList.length) {
+    // Corrigido: Atualiza a lista privada
+    _shoppingList[index] = item;
     notifyListeners();
   }
-
-  Future<void> updateShoppingItem(int index, ShoppingItem item) async {
-    if (index >= 0 && index < _shoppingList.length) {
-      await DatabaseHelper.instance.updateShoppingItem(item);
-      _shoppingList[index] = item;
-      notifyListeners();
-    }
-  }
+}
 
   Future<void> toggleShoppingItemChecked(int index, bool value) async {
     if (index >= 0 && index < _shoppingList.length) {
