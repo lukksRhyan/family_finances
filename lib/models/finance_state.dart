@@ -14,6 +14,9 @@ class FinanceState with ChangeNotifier {
   List<Receipt> get receipts => List.unmodifiable(_receipts);
   List<ShoppingItem> get shoppingList => List.unmodifiable(_shoppingList);
   bool get isLoading => _isLoading;
+  double get totalDespesas => _expenses.fold(0, (sum, item) => sum + item.value);
+  double get totalReceitas => _receipts.fold(0, (sum, item) => sum + item.value);
+  double get saldo => totalReceitas - totalDespesas;
 
   FinanceState(){
     loadData();

@@ -259,6 +259,9 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
                     decoration: const InputDecoration(labelText: 'Estabelecimento'),
                   ),
                 ),
+              ]),
+              Row(
+              children: [
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 2,

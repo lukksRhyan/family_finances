@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -7,9 +9,17 @@ import 'screens/main_screen.dart';
 import 'styles/app_theme.dart';
 
 void main() {
+
   WidgetsFlutterBinding.ensureInitialized();
+  bool isDesktop = (    Platform.isWindows ||
+    Platform.isLinux ||
+    Platform.isMacOS
+  );
+
+  if (isDesktop) {
   sqfliteFfiInit(); // Adicione esta linha
   databaseFactory = databaseFactoryFfi; // Adicione esta linha
+  }
 
   runApp(
     ChangeNotifierProvider(
