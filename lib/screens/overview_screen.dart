@@ -183,7 +183,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         receitas + despesas == 0 ? 0 : (receitas / (receitas + despesas)) * 100;
     final despesasPercent =
         receitas + despesas == 0 ? 0 : (despesas / (receitas + despesas)) * 100;
-    final saldo = receitas - despesas;
+    final saldo = receitasPercent - despesasPercent;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -204,15 +204,21 @@ class _OverviewScreenState extends State<OverviewScreen> {
           width: 80,
           child: PieChart(
             PieChartData(
-              sections: [
+              sections: saldo>=0?[
                 PieChartSectionData(
                     color: Colors.green,
-                    value: saldo.toDouble(),
+                    value: saldo.toDouble().abs(),
                     radius: 15,
                     showTitle: false),
                 PieChartSectionData(
                     color: Colors.red,
                     value: despesasPercent.toDouble(),
+                    radius: 15,
+                    showTitle: false),
+              ] : [
+                 PieChartSectionData(
+                    color:Colors.red[800],
+                    value: saldo.toDouble().abs(),
                     radius: 15,
                     showTitle: false),
               ],
