@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'expense_category.dart';
 
 class Expense {
-  final int? id;
+  final int? id; // Adicionado para guardar o ID do banco de dados
   final String title;
   final double value;
   final ExpenseCategory category;
@@ -16,7 +16,7 @@ class Expense {
   final int? installmentCount;
 
   Expense({
-    this.id,
+    this.id, // O ID pode ser nulo se for uma nova despesa
     required this.title,
     required this.value,
     required this.category,
@@ -29,6 +29,8 @@ class Expense {
     required this.isInInstallments,
     this.installmentCount,
   });
+
+  bool get isFuture => date.isAfter(DateTime.now());
 
   Map<String, dynamic> toMap() {
     return {
@@ -64,6 +66,4 @@ class Expense {
       installmentCount: map['installment_count'],
     );
   }
-
-  bool get isFuture => date.isAfter(DateTime.now());
 }

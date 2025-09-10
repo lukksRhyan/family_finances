@@ -2,7 +2,9 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
-import '../models/shopping_item.dart';
+import '../models/expense_category.dart';
+import '../models/receipt_category.dart';
+import '../models/app_categories.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -12,6 +14,7 @@ class DatabaseHelper {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
+
     _database = await _initDB('family_finances.db');
     return _database!;
   }
@@ -20,60 +23,69 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, filePath);
 
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: _createDB,
-    );
+    return await openDatabase(path, version: 1, onCreate: _createDB);
   }
 
   Future _createDB(Database db, int version) async {
-    const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
-    const textType = 'TEXT NOT NULL';
-    const doubleType = 'REAL NOT NULL';
-    const boolType = 'INTEGER NOT NULL';
-    const intType = 'INTEGER';
+  const idType = 'INTEGER PRIMARY KEY AUTOINCREMENT';
+  const textType = 'TEXT NOT NULL';
+  const doubleType = 'REAL NOT NULL';
+  const boolType = 'INTEGER NOT NULL';
+  const intType = 'INTEGER';
 
-    await db.execute('''
-      CREATE TABLE expenses ( 
-        id $idType, 
-        title $textType,
-        value $doubleType,
-        category_name $textType,
-        category_icon $intType,
-        note $textType,
-        date $textType,
-        is_recurrent $boolType,
-        recurrency_id $intType,
-        recurrency_type $intType,
-        recurrent_interval_days $intType,
-        is_in_installments $boolType,
-        installment_count $intType
-      )
-      ''');
+  await db.execute('''
+  CREATE TABLE expenses (
+    id $idType,
+    title $textType,
+    value $doubleType,
+    category_name $textType,
+    category_icon $textType,
+    note $textType,
+    date $textType,
+    is_recurrent $boolType,
+    recurrency_id $intType,
+    recurrency_type $intType,
+    recurrent_interval_days $intType,
+    is_in_installments $boolType,
+    installment_count $intType
+  )
+  ''');
 
-    await db.execute('''
-      CREATE TABLE receipts (
-        id $idType,
-        title $textType,
-        value $doubleType,
-        date $textType
-      )
-      ''');
-      
-    await db.execute('''
-      CREATE TABLE shopping_items (
-        id $idType,
-        name $textType,
-        is_checked $boolType,
-        options $textType
-      )
-      ''');
-  }
-
+  await db.execute('''
+  CREATE TABLE receipts (
+    id $idType,
+    title $textType,
+    value $doubleType,
+    date $textType,
+    category_name $textType,
+    category_icon $textType,
+    is_recurrent $boolType,
+    recurrency_id $intType
+  )
+  ''');
+}
   Future<int> createExpense(Expense expense) async {
     final db = await instance.database;
     return await db.insert('expenses', expense.toMap());
+  }
+
+  Future<int> updateExpense(Expense expense) async {
+    final db = await instance.database;
+    return await db.update(
+      'expenses',
+      expense.toMap(),
+      where: 'id = ?',
+      whereArgs: [expense.id],
+    );
+  }
+
+  Future<int> deleteExpense(int id) async {
+    final db = await instance.database;
+    return await db.delete(
+      'expenses',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<List<Expense>> getAllExpenses() async {
@@ -87,41 +99,28 @@ class DatabaseHelper {
     return await db.insert('receipts', receipt.toMap());
   }
 
+  Future<int> updateReceipt(Receipt receipt) async {
+    final db = await instance.database;
+    return await db.update(
+      'receipts',
+      receipt.toMap(),
+      where: 'id = ?',
+      whereArgs: [receipt.id],
+    );
+  }
+
+  Future<int> deleteReceipt(int id) async {
+    final db = await instance.database;
+    return await db.delete(
+      'receipts',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<List<Receipt>> getAllReceipts() async {
     final db = await instance.database;
     final result = await db.query('receipts', orderBy: 'date DESC');
     return result.map((json) => Receipt.fromMap(json)).toList();
-  }
-
-  Future<int> deleteExpense(int id) async {
-    final db = await instance.database;
-    return await db.delete('expenses', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // Métodos para a lista de compras
-  Future<int> createShoppingItem(ShoppingItem item) async {
-    final db = await instance.database;
-    return await db.insert('shopping_items', item.toMap());
-  }
-  
-  Future<List<ShoppingItem>> getAllShoppingItems() async {
-    final db = await instance.database;
-    final result = await db.query('shopping_items', orderBy: 'name ASC');
-    return result.map((json) => ShoppingItem.fromMap(json)).toList();
-  }
-
-  Future<int> updateShoppingItem(ShoppingItem item) async {
-    final db = await instance.database;
-    return await db.update(
-      'shopping_items',
-      item.toMap(),
-      where: 'id = ?',
-      whereArgs: [item.id],
-    );
-  }
-
-  Future<int> deleteShoppingItem(int id) async {
-    final db = await instance.database;
-    return await db.delete('shopping_items', where: 'id = ?', whereArgs: [id]);
   }
 }

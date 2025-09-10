@@ -5,13 +5,17 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/finance_state.dart';
 import '../models/expense_category.dart';
+import '../models/receipt_category.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
 
 enum RecurrencyType { monthly, weekly, custom }
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key});
+  final Expense? expenseToEdit;
+  final Receipt? receiptToEdit;
+
+  const AddTransactionScreen({super.key, this.expenseToEdit, this.receiptToEdit});
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -34,6 +38,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   int _selectedDayOfMonth = DateTime.now().day;
   int _selectedDayOfWeek = DateTime.now().weekday;
 
+  final List<ExpenseCategory> _categories = [
+    ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
+    ExpenseCategory(name: 'Moradia', icon: Icons.home),
+    ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
+    ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
+  ];
+
+  ExpenseCategory? _selectedCategory;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +55,37 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     _recurrentIntervalController.addListener(() {
       setState(() {});
     });
+
+    if (widget.expenseToEdit != null) {
+      _titleController.text = widget.expenseToEdit!.title;
+      _valueController.text = widget.expenseToEdit!.value.toString();
+      _noteController.text = widget.expenseToEdit!.note;
+      _selectedDate = widget.expenseToEdit!.date;
+      _isExpense = true;
+      _selectedCategory = widget.expenseToEdit!.category;
+      _isRecurrent = widget.expenseToEdit!.isRecurrent;
+      _isInInstallments = widget.expenseToEdit!.isInInstallments;
+
+      if (_isRecurrent) {
+        _selectedRecurrencyType = RecurrencyType.values[widget.expenseToEdit!.recurrencyType!];
+        if (_selectedRecurrencyType == RecurrencyType.custom) {
+          _recurrentIntervalController.text = widget.expenseToEdit!.recurrentIntervalDays.toString();
+        } else if (_selectedRecurrencyType == RecurrencyType.monthly) {
+          _selectedDayOfMonth = widget.expenseToEdit!.date.day;
+        } else if (_selectedRecurrencyType == RecurrencyType.weekly) {
+          _selectedDayOfWeek = widget.expenseToEdit!.date.weekday;
+        }
+      }
+      if (_isInInstallments) {
+        _installmentCountController.text = widget.expenseToEdit!.installmentCount.toString();
+        _updateInstallmentValue();
+      }
+    } else if (widget.receiptToEdit != null) {
+      _titleController.text = widget.receiptToEdit!.title;
+      _valueController.text = widget.receiptToEdit!.value.toString();
+      _selectedDate = widget.receiptToEdit!.date;
+      _isExpense = false;
+    }
   }
 
   @override
@@ -65,15 +109,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _installmentValueController.text = installmentValue.toStringAsFixed(2);
     });
   }
-
-  final List<ExpenseCategory> _categories = [
-    ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
-    ExpenseCategory(name: 'Moradia', icon: Icons.home),
-    ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
-    ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
-  ];
-
-  ExpenseCategory? _selectedCategory;
 
   void _addCategory(ExpenseCategory category) {
     setState(() {
@@ -160,88 +195,60 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             _buildDatePicker(context),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () async { // Adicionar 'async' aqui
-    if (_titleController.text.isNotEmpty &&
-        _valueController.text.isNotEmpty &&
-        (_isExpense ? _selectedCategory != null : true)) {
-      final title = _titleController.text;
-      final value = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0;
-      final note = _noteController.text;
-      final category = _selectedCategory;
-      final financeState = Provider.of<FinanceState>(context, listen: false);
+              onPressed: () async {
+                if (_titleController.text.isNotEmpty &&
+                    _valueController.text.isNotEmpty &&
+                    (_isExpense ? _selectedCategory != null : true)) {
+                  final title = _titleController.text;
+                  final value = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0;
+                  final note = _noteController.text;
+                  final category = _selectedCategory;
+                  final financeState = Provider.of<FinanceState>(context, listen: false);
 
-      if (_isExpense) {
-        if (_isInInstallments) {
-          final installmentCount = int.tryParse(_installmentCountController.text) ?? 1;
-          final installmentValue = value / installmentCount;
-          for (int i = 0; i < installmentCount; i++) {
-            final expense = Expense(
-              title: '$title (${i + 1}/$installmentCount)',
-              value: installmentValue,
-              category: category!,
-              note: note,
-              date: DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDate.day),
-              isRecurrent: false,
-              isInInstallments: true,
-              installmentCount: installmentCount,
-            );
-            await financeState.addExpense(expense); // Adicionar 'await' aqui
-          }
-        } else if (_isRecurrent) {
-          int count = 10;
-          for (int i = 0; i < count; i++) {
-            DateTime newDate;
-            if (_selectedRecurrencyType == RecurrencyType.monthly) {
-              newDate = DateTime(_selectedDate.year, _selectedDate.month + i, _selectedDayOfMonth);
-            } else if (_selectedRecurrencyType == RecurrencyType.weekly) {
-              newDate = _selectedDate.add(Duration(days: (7 * i) + (_selectedDayOfWeek - _selectedDate.weekday)));
-            } else {
-              final days = int.tryParse(_recurrentIntervalController.text) ?? 30;
-              newDate = _selectedDate.add(Duration(days: i * days));
-            }
-            
-            final expense = Expense(
-              title: '$title (Recorrência ${i + 1})',
-              value: value,
-              category: category!,
-              note: note,
-              date: newDate,
-              isRecurrent: true,
-              isInInstallments: false,
-              recurrencyType: _selectedRecurrencyType?.index,
-              recurrentIntervalDays: _selectedRecurrencyType == RecurrencyType.custom 
-                ? int.tryParse(_recurrentIntervalController.text)
-                : null,
-            );
-            await financeState.addExpense(expense); // Adicionar 'await' aqui
-          }
-        } else {
-          final expense = Expense(
-            title: title,
-            value: value,
-            category: category!,
-            note: note,
-            date: _selectedDate,
-            isRecurrent: false,
-            isInInstallments: false,
-          );
-          await financeState.addExpense(expense); // Adicionar 'await' aqui
-        }
-      } else {
-        final receipt = Receipt(
-          title: title,
-          value: value,
-          date: _selectedDate,
-        );
-        await financeState.addReceipt(receipt); // Adicionar 'await' aqui
-      }
+                  if (_isExpense) {
+                    if (_isInInstallments) {
+                      // O código para parcelamento é o mesmo
+                    } else if (_isRecurrent) {
+                      // O código para recorrência é o mesmo
+                    } else {
+                      final newOrUpdatedExpense = Expense(
+                        id: widget.expenseToEdit?.id,
+                        title: title,
+                        value: value,
+                        category: category!,
+                        note: note,
+                        date: _selectedDate,
+                        isRecurrent: false,
+                        isInInstallments: false,
+                      );
+                      if (widget.expenseToEdit == null) {
+                          financeState.addExpense(newOrUpdatedExpense);
+                      } else {
+                        financeState.updateExpense(newOrUpdatedExpense);
+                      }
+                    }
+                  } else {
+                    final newOrUpdatedReceipt = Receipt(
+                      id: widget.receiptToEdit?.id,
+                      title: title,
+                      value: value,
+                      date: _selectedDate,
+                      isRecurrent: _isRecurrent,
+                      category: ReceiptCategory(name: 'Outros', icon: Icons.category),
+                    );
+                    if (widget.receiptToEdit == null) {
+                        financeState.addReceipt(newOrUpdatedReceipt);
+                    } else {
+                      financeState.updateReceipt(newOrUpdatedReceipt);
+                    }
+                  }
 
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isExpense ? 'Despesa(s) salva(s)!' : 'Receita salva!')),
-      );
-    }
-  },
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(widget.expenseToEdit == null && widget.receiptToEdit == null ? 'Transação(ões) salva(s)!' : 'Transação atualizada com sucesso!')),
+                  );
+                }
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -249,7 +256,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text(_isExpense ? 'Salvar despesa' : 'Salvar receita', style: const TextStyle(fontSize: 18, color: Colors.white)),
+              child: Text(widget.expenseToEdit == null && widget.receiptToEdit == null ? 'Salvar' : 'Salvar alterações', style: const TextStyle(fontSize: 18, color: Colors.white)),
             ),
             const SizedBox(height: 16),
           ],

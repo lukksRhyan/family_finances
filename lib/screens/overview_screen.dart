@@ -8,6 +8,7 @@ import '../models/finance_state.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
 import 'shopping_list_screen.dart';
+import 'add_transaction_screen.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -44,6 +45,92 @@ class _OverviewScreenState extends State<OverviewScreen> {
         _endDate = picked.end;
       });
     }
+  }
+
+  void _openAddTransactionScreen() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const AddTransactionScreen(),
+    );
+  }
+
+  void _openEditExpense(BuildContext context, Expense expense) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => AddTransactionScreen(expenseToEdit: expense),
+    );
+  }
+
+  void _openEditReceipt(BuildContext context, Receipt receipt) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => AddTransactionScreen(receiptToEdit: receipt),
+    );
+  }
+
+  void _confirmDeleteExpense(BuildContext context, Expense expense) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar exclusão'),
+          content: Text('Tem certeza de que deseja apagar a despesa "${expense.title}"?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final financeState = Provider.of<FinanceState>(context, listen: false);
+                financeState.deleteExpense(expense.id!);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Despesa apagada com sucesso!')),
+                );
+              },
+              child: const Text('Apagar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteReceipt(BuildContext context, Receipt receipt) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirmar exclusão'),
+          content: Text('Tem certeza de que deseja apagar a receita "${receipt.title}"?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final financeState = Provider.of<FinanceState>(context, listen: false);
+                financeState.deleteReceipt(receipt.id!);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Receita apagada com sucesso!')),
+                );
+              },
+              child: const Text('Apagar'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -83,15 +170,12 @@ class _OverviewScreenState extends State<OverviewScreen> {
       appBar: AppBar(
         title: const Text('FamilyFinances'),
         leading: const Icon(Icons.account_balance_wallet),
-
-        ),
-    
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             const SizedBox(height: 16),
             _buildButtomsRow(context),
             const SizedBox(height: 16),
@@ -102,30 +186,25 @@ class _OverviewScreenState extends State<OverviewScreen> {
             const SizedBox(height: 16),
             _buildDateFilter(context),
             const SizedBox(height: 24),
-
-                Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: SectionStyle(),
-                  child:  Column(
-
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle('Saldo Atual'),
-                    _buildBalanceSection(totalReceitasAtuais, totalDespesasAtuais),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-                ),
-               
-                const SizedBox(height: 5,),
-                _buildFutureBalanceSection(totalAReceber, totalAPagar),
-
-
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: SectionStyle(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionTitle('Saldo Atual'),
+                  _buildBalanceSection(totalReceitasAtuais, totalDespesasAtuais),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+            const SizedBox(height: 5,),
+            _buildFutureBalanceSection(totalAReceber, totalAPagar),
             _buildSectionTitle('Despesas'),
-            ...filteredExpenses.map((expense) => _buildExpenseRow(expense)),
+            ...filteredExpenses.map((expense) => _buildExpenseRow(context, expense)),
             const Divider(height: 32),
             _buildSectionTitle('Receitas'),
-            ...filteredReceipts.map((receipt) => _buildReceiptRow(receipt)),
+            ...filteredReceipts.map((receipt) => _buildReceiptRow(context, receipt)),
           ],
         ),
       ),
@@ -142,21 +221,20 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
- Widget _buildButtomsRow(BuildContext context){
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: [
-      RowOption(title: "Lista de Compras", iconData: Icons.shopping_cart, onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ShoppingListScreen()),
-        );
-      }),
-      
-
-    ],
-  );
- }
+  Widget _buildButtomsRow(BuildContext context){
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        RowOption(title: "Lista de Compras", iconData: Icons.shopping_cart, onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ShoppingListScreen()),
+          );
+        }),
+        RowOption(title: "Adicionar Transação", iconData: Icons.add, onTap: _openAddTransactionScreen),
+      ],
+    );
+  }
 
   Widget _buildDateFilter(BuildContext context) {
     return Row(
@@ -180,10 +258,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
   Widget _buildBalanceSection(double receitas, double despesas) {
     final receitasPercent =
-        receitas + despesas == 0 ? 0 : (receitas / (receitas + despesas)) * 100;
+        (receitas + despesas == 0 ? 0 : (receitas / (receitas + despesas)) * 100).toDouble();
     final despesasPercent =
-        receitas + despesas == 0 ? 0 : (despesas / (receitas + despesas)) * 100;
-    final saldo = receitasPercent - despesasPercent;
+        (receitas + despesas == 0 ? 0 : (despesas / (receitas + despesas)) * 100).toDouble();
+    final saldo = receitas - despesas;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -204,21 +282,21 @@ class _OverviewScreenState extends State<OverviewScreen> {
           width: 80,
           child: PieChart(
             PieChartData(
-              sections: saldo>=0?[
+              sections: saldo >= 0 ? [
                 PieChartSectionData(
                     color: Colors.green,
-                    value: saldo.toDouble().abs(),
+                    value: receitasPercent,
                     radius: 15,
                     showTitle: false),
                 PieChartSectionData(
                     color: Colors.red,
-                    value: despesasPercent.toDouble(),
+                    value: despesasPercent,
                     radius: 15,
                     showTitle: false),
               ] : [
-                 PieChartSectionData(
-                    color:Colors.red[800],
-                    value: saldo.toDouble().abs(),
+                PieChartSectionData(
+                    color: Colors.red[800],
+                    value: despesasPercent,
                     radius: 15,
                     showTitle: false),
               ],
@@ -232,59 +310,60 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
   Widget _buildFutureBalanceSection(double aReceber, double aPagar) {
     final total = aReceber + aPagar;
-    final aReceberPercent = total == 0 ? 0 : (aReceber / total) * 100;
-    final aPagarPercent = total == 0 ? 0 : (aPagar / total) * 100;
+    final aReceberPercent = (total == 0 ? 0 : (aReceber / total) * 100).toDouble();
+    final aPagarPercent = (total == 0 ? 0 : (aPagar / total) * 100).toDouble();
     if (total == 0.0){
       return Container();
     }
     return Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: SectionStyle(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle('A Receber / A Pagar'),
-                    Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('A Receber', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('R\$ ${aReceber.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 16, color: Colors.green)),
-            const SizedBox(height: 8),
-            const Text('A Pagar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('R\$ ${aPagar.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 16, color: Colors.red)),
-          ],
-        ),
-        SizedBox(
-          height: 80,
-          width: 80,
-          child: PieChart(
-            PieChartData(
-              sections: [
-                PieChartSectionData(
-                    color: Colors.blue,
-                    value: aReceberPercent.toDouble(),
-                    radius: 15,
-                    showTitle: false),
-                PieChartSectionData(
-                    color: Colors.orange,
-                    value: aPagarPercent.toDouble(),
-                    radius: 15,
-                    showTitle: false),
-              ],
-              centerSpaceRadius: 25,
-            ),
+      padding: const EdgeInsets.all(5),
+      decoration: SectionStyle(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionTitle('A Receber / A Pagar'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('A Receber', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('R\$ ${aReceber.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 16, color: Colors.green)),
+                  const SizedBox(height: 8),
+                  const Text('A Pagar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('R\$ ${aPagar.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 16, color: Colors.red)),
+                ],
+              ),
+              SizedBox(
+                height: 80,
+                width: 80,
+                child: PieChart(
+                  PieChartData(
+                    sections: [
+                      PieChartSectionData(
+                          color: Colors.blue,
+                          value: aReceberPercent,
+                          radius: 15,
+                          showTitle: false),
+                      PieChartSectionData(
+                          color: Colors.orange,
+                          value: aPagarPercent,
+                          radius: 15,
+                          showTitle: false),
+                    ],
+                    centerSpaceRadius: 25,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-      ],
-    ),
-                    const SizedBox(height: 24),
-                  ],
-                ));
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
   }
 
   Widget _buildSectionTitle(String title) {
@@ -295,7 +374,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
-  Widget _buildExpenseRow(Expense expense) {
+  Widget _buildExpenseRow(BuildContext context, Expense expense) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: ListTile(
@@ -305,24 +384,50 @@ class _OverviewScreenState extends State<OverviewScreen> {
         subtitle: Text(expense.isFuture
             ? 'A pagar em ${DateFormat('dd/MM/yyyy').format(expense.date)}'
             : DateFormat('dd/MM/yyyy').format(expense.date)),
-        trailing: Text('R\$ ${expense.value.toStringAsFixed(2)}',
-            style: TextStyle(color: expense.isFuture ? Colors.orange : Colors.red)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('R\$ ${expense.value.toStringAsFixed(2)}',
+                style: TextStyle(color: expense.isFuture ? Colors.orange : Colors.red)),
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () => _openEditExpense(context, expense),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _confirmDeleteExpense(context, expense),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildReceiptRow(Receipt receipt) {
+  Widget _buildReceiptRow(BuildContext context, Receipt receipt) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: ListTile(
-        leading: Icon(Icons.attach_money,
+        leading: Icon(receipt.category.icon,
             color: receipt.isFuture ? Colors.blue : Colors.green),
         title: Text(receipt.title),
         subtitle: Text(receipt.isFuture
             ? 'A receber em ${DateFormat('dd/MM/yyyy').format(receipt.date)}'
             : DateFormat('dd/MM/yyyy').format(receipt.date)),
-        trailing: Text('R\$ ${receipt.value.toStringAsFixed(2)}',
-            style: TextStyle(color: receipt.isFuture ? Colors.blue : Colors.green)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('R\$ ${receipt.value.toStringAsFixed(2)}',
+                style: TextStyle(color: receipt.isFuture ? Colors.blue : Colors.green)),
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () => _openEditReceipt(context, receipt),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _confirmDeleteReceipt(context, receipt),
+            ),
+          ],
+        ),
       ),
     );
   }

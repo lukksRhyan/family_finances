@@ -1,4 +1,5 @@
 import 'package:family_finances/models/expense_category.dart';
+import 'package:family_finances/models/receipt_category.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -90,6 +91,8 @@ class SettingsScreen extends StatelessWidget {
         title: r['title'],
         value: r['value'],
         date: DateTime.parse(r['date']),
+        category: ReceiptCategory(name: 'Outros', icon: Icons.category),
+        isRecurrent: r['isRecurrent'] ?? false,
       ));
     }
 

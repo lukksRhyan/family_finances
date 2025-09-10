@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
+import 'package:family_finances/models/receipt_category.dart';
 import '../models/finance_state.dart';
 import '../models/receipt.dart';
 
@@ -47,7 +47,9 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                   final receipt = Receipt(
                     title: _titleController.text,
                     value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
-                    date: _selectedDate, // NOVO
+                    date: _selectedDate,
+                    category: ReceiptCategory(name: 'Outros', icon: Icons.category),
+                    isRecurrent: false,
                   );
                   Provider.of<FinanceState>(context, listen: false).addReceipt(receipt);
                   _titleController.clear();
