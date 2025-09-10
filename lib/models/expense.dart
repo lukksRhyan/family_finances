@@ -32,38 +32,45 @@ class Expense {
 
   bool get isFuture => date.isAfter(DateTime.now());
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'title': title,
-      'value': value,
-      'category_name': category.name,
-      'category_icon': category.icon.codePoint,
-      'note': note,
-      'date': date.toIso8601String(),
-      'is_recurrent': isRecurrent ? 1 : 0,
-      'recurrency_id': recurrencyId,
-      'recurrency_type': recurrencyType,
-      'recurrent_interval_days': recurrentIntervalDays,
-      'is_in_installments': isInInstallments ? 1 : 0,
-      'installment_count': installmentCount,
-    };
-  }
-
   static Expense fromMap(Map<String, dynamic> map) {
-    return Expense(
-      id: map['id'],
-      title: map['title'],
-      value: map['value'],
-      category: ExpenseCategory(name: map['category_name'], icon: IconData(map['category_icon'], fontFamily: 'MaterialIcons')),
-      note: map['note'],
-      date: DateTime.parse(map['date']),
-      isRecurrent: map['is_recurrent'] == 1,
-      recurrencyId: map['recurrency_id'],
-      recurrencyType: map['recurrency_type'],
-      recurrentIntervalDays: map['recurrent_interval_days'],
-      isInInstallments: map['is_in_installments'] == 1,
-      installmentCount: map['installment_count'],
-    );
-  }
+  return Expense(
+    id: map['id'],
+    title: map['title'],
+    value: map['value'],
+    category: ExpenseCategory(
+      name: map['category_name'],
+      icon: IconData(
+        int.tryParse(map['category_icon'].toString()) ?? 0xe360, // Safely parse the string to an int. Use a default icon if parsing fails.
+        fontFamily: 'MaterialIcons',
+      ),
+    ),
+    note: map['note'],
+    date: DateTime.parse(map['date']),
+    isRecurrent: map['is_recurrent'] == 1,
+    recurrencyId: map['recurrency_id'],
+    recurrencyType: map['recurrency_type'],
+    recurrentIntervalDays: map['recurrent_interval_days'],
+    isInInstallments: map['is_in_installments'] == 1,
+    installmentCount: map['installment_count'],
+  );
+}
+
+// Correção no método 'toMap' para consistência
+Map<String, dynamic> toMap() {
+  return {
+    'id': id,
+    'title': title,
+    'value': value,
+    'category_name': category.name,
+    'category_icon': category.icon.codePoint.toString(), // Explicitly save the code point as a string
+    'note': note,
+    'date': date.toIso8601String(),
+    'is_recurrent': isRecurrent ? 1 : 0,
+    'recurrency_id': recurrencyId,
+    'recurrency_type': recurrencyType,
+    'recurrent_interval_days': recurrentIntervalDays,
+    'is_in_installments': isInInstallments ? 1 : 0,
+    'installment_count': installmentCount,
+  };
+}
 }
