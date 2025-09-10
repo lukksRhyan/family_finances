@@ -1,5 +1,6 @@
 import 'package:family_finances/models/expense_category.dart';
 import 'package:family_finances/models/receipt_category.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
@@ -53,8 +54,28 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> _importData(BuildContext context) async {
-    final directory = await getApplicationDocumentsDirectory();
-    final file = File('${directory.path}/family_finances_export.json');
+    File file;
+    if (Platform.isWindows) {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result == null || result.files.single.path == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nenhum arquivo selecionado')),
+        );
+        return;
+       }
+
+       final filePath = result.files.single.path!;
+       file = File(filePath);
+    }else{
+      final directory = await getApplicationDocumentsDirectory();
+      file = File('${directory.path}/family_finances_export.json');
+    }
+
+
     if (!await file.exists()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Arquivo de importação não encontrado')),
@@ -66,10 +87,7 @@ class SettingsScreen extends StatelessWidget {
 
     final state = Provider.of<FinanceState>(context, listen: false);
 
-    // Limpa os dados atuais
-    state.expenses.clear();
-    state.receipts.clear();
-    state.shoppingList.clear();
+   
 
     // Importa despesas
     for (var e in data['expenses']) {
