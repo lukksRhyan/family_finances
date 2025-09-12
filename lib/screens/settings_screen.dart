@@ -91,6 +91,9 @@ class SettingsScreen extends StatelessWidget {
 
     // Importa despesas
     for (var e in data['expenses']) {
+      if (state.expenses.contains(e)) {
+        continue; // Pula despesas já existentes
+      }
       state.addExpense(Expense(
         title: e['title'],
         value: e['value'],
@@ -104,13 +107,17 @@ class SettingsScreen extends StatelessWidget {
     }
 
     // Importa receitas
-    for (var r in data['receipts']) {
+    for (var importedReceipt in data['receipts']) {
+      if(state.receipts.contains(importedReceipt)){
+        continue; // Pula receitas já existentes
+      }
+        print("Receita já existe: ${importedReceipt['title']} - ${importedReceipt['value']}");
       state.addReceipt(Receipt(
-        title: r['title'],
-        value: r['value'],
-        date: DateTime.parse(r['date']),
+        title: importedReceipt['title'],
+        value: importedReceipt['value'],
+        date: DateTime.parse(importedReceipt['date']),
         category: ReceiptCategory(name: 'Outros', icon: Icons.category),
-        isRecurrent: r['isRecurrent'] ?? false,
+        isRecurrent: importedReceipt['isRecurrent'] ?? false,
       ));
     }
 

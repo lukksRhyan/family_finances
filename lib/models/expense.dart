@@ -32,6 +32,17 @@ class Expense {
 
   bool get isFuture => date.isAfter(DateTime.now());
 
+  @override
+  operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Expense &&
+        other.title == title &&
+        other.value == value &&
+        other.date == date &&
+        other.isRecurrent == isRecurrent;
+  }
+
+
   static Expense fromMap(Map<String, dynamic> map) {
   return Expense(
     id: map['id'],
