@@ -1,3 +1,4 @@
+import 'package:family_finances/screens/qr_code_scanner_screen.dart';
 import 'package:family_finances/styles/section_style.dart';
 import 'package:family_finances/widgets/row_option.dart';
 import 'package:flutter/material.dart';
@@ -229,6 +230,12 @@ class _OverviewScreenState extends State<OverviewScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ShoppingListScreen()),
+          );
+        }),
+        RowOption(title: "Scanner QR Code", iconData: Icons.qr_code, onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) =>  QRCodeScannerScreen()),
           );
         }),
         RowOption(title: "Adicionar Transação", iconData: Icons.add, onTap: _openAddTransactionScreen),
