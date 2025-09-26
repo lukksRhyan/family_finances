@@ -7,7 +7,7 @@ import 'shopping_item.dart';
 class FinanceState with ChangeNotifier {
   List<Expense> _expenses = [];
   List<Receipt> _receipts = [];
-  List<ShoppingItem> _shoppingList = [];
+  final List<ShoppingItem> _shoppingList = [];
   bool _isLoading = false;
   List<Expense> get expenses => List.unmodifiable(_expenses);
   List<Receipt> get receipts => List.unmodifiable(_receipts);

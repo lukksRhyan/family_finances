@@ -2,9 +2,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
-import '../models/expense_category.dart';
-import '../models/receipt_category.dart';
-import '../models/app_categories.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();

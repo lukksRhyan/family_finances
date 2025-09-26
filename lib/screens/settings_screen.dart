@@ -1,5 +1,3 @@
-import 'package:family_finances/models/expense_category.dart';
-import 'package:family_finances/models/receipt_category.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

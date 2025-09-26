@@ -479,7 +479,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 const Text('Valor da parcela'),
                 const SizedBox(height: 8),
                 Text(
-                  'R\$ ${installmentValue?.toStringAsFixed(2).replaceAll('.', ',') ?? '0,00'}',
+                  'R\$ ${installmentValue.toStringAsFixed(2).replaceAll('.', ',') ?? '0,00'}',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ],
@@ -568,7 +568,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         const SizedBox(height: 8),
         DropdownButtonFormField<int>(
-          value: currentValue,
+          initialValue: currentValue,
           items: List.generate(maxDay, (index) => index + 1).map((day) {
             String label = day.toString();
             if (maxDay == 7) {
