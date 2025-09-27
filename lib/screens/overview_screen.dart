@@ -1,5 +1,6 @@
 import 'package:family_finances/screens/qr_code_scanner_screen.dart';
 import 'package:family_finances/styles/section_style.dart';
+import 'package:family_finances/utils/nfce_parser.dart';
 import 'package:family_finances/widgets/row_option.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -226,20 +227,39 @@ class _OverviewScreenState extends State<OverviewScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        RowOption(title: "Lista de Compras", iconData: Icons.shopping_cart, onTap: () {
+        RowOption(title: "Compras", iconData: Icons.shopping_cart, onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ShoppingListScreen()),
           );
         }),
-        RowOption(title: "Scanner QR Code", iconData: Icons.qr_code, onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) =>  QRCodeScannerScreen()),
-          );
-        }),
-        RowOption(title: "Adicionar Transação", iconData: Icons.add, onTap: _openAddTransactionScreen),
-      ],
+        RowOption(
+  title: "Importar NFC-e",
+  iconData: Icons.qr_code_scanner,
+  onTap: () async {
+    final url = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (context) =>  QRCodeScannerScreen()),
+    );
+
+    if (url != null && context.mounted) {
+      // 1. Chame a nova função para extrair a chave
+      final String? accessKey = extractAccessKeyFromUrl(url);
+
+      // 2. Verifique se a chave foi encontrada e mostre o resultado
+      if (accessKey != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Chave de Acesso: $accessKey')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível encontrar a chave de acesso no QR code.')),
+        );
+      }
+    }
+  },
+),
+        ],
     );
   }
 

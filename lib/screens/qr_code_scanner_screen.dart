@@ -5,13 +5,22 @@ class QRCodeScannerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('QR Code Scanner'),
-      ),
+      appBar: AppBar(title: const Text('Ler QR Code da NFC-e')),
       body: MobileScanner(
-        onDetect: (barcode) {
-          final String code = barcode.toString();
-          print('Barcode found: $code');
+        controller: MobileScannerController(
+          detectionSpeed: DetectionSpeed.noDuplicates, // Evita detecções repetidas
+          facing: CameraFacing.back,
+        ),
+        onDetect: (capture) {
+          final List<Barcode> barcodes = capture.barcodes;
+          if (barcodes.isNotEmpty) {
+            final String? url = barcodes.first.rawValue;
+            // Garante que o URL não é nulo e que o ecrã ainda está ativo
+            if (url != null && context.mounted) {
+              // Fecha o scanner e devolve o URL como resultado
+              Navigator.of(context).pop(url);
+            }
+          }
         },
       ),
     );
