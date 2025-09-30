@@ -8,6 +8,7 @@ import '../models/finance_state.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
 import '../models/shopping_item.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Importe o Firebase Auth
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -118,6 +119,19 @@ class SettingsScreen extends StatelessWidget {
               onPressed: () => _importData(context),
             ),
             const Spacer(),
+            // Botão de Logout
+            ElevatedButton.icon(
+              icon: const Icon(Icons.logout),
+              label: const Text('Sair'),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent,
+                foregroundColor: Colors.white
+              ),
+            ),
+            const SizedBox(height: 16),
             const Center(child: Text('Configurações do aplicativo')),
           ],
         ),

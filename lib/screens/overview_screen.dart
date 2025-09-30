@@ -243,10 +243,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
 
     if (url != null && context.mounted) {
-      // 1. Chame a nova função para extrair a chave
-      final String? accessKey = extractAccessKeyFromUrl(url);
+      final String? accessKey = url;//extractAccessKeyFromUrl(url); //Alterar de volta para fazer requisição para SEFAZ
 
-      // 2. Verifique se a chave foi encontrada e mostre o resultado
       if (accessKey != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Chave de Acesso: $accessKey')),

@@ -491,7 +491,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   Widget _buildRecurrencyCard() {
-    final List<String> daysOfWeek = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
     return Container(
       padding: const EdgeInsets.all(16),

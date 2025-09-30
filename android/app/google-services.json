@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "415549226593",
+    "project_id": "family-invest-65acc",
+    "storage_bucket": "family-invest-65acc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:415549226593:android:5fc2f0fa8a1e81d8de7420",
+        "android_client_info": {
+          "package_name": "com.example.family_finances"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDW_WHoWfmbSa3tip89mmASeaQktaVGPNw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
