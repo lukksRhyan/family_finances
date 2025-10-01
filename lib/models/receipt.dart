@@ -1,8 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'receipt_category.dart';
 
 class Receipt {
-  final int? id;
+  final String? id;
   final String title;
   final double value;
   final DateTime date;
@@ -22,18 +23,18 @@ class Receipt {
 
   bool get isFuture => date.isAfter(DateTime.now());
 
-  factory Receipt.fromMap(Map<String, dynamic> map) {
+  factory Receipt.fromMap(Map<String, dynamic> map, {String? id}) {
     return Receipt(
-      id: map['id'],
+      id: id,
       title: map['title'],
-      value: map['value'],
-      date: DateTime.parse(map['date']),
-      isRecurrent: map['is_recurrent'] == 1,
+      value: (map['value'] as num).toDouble(),
+      date: (map['date'] as Timestamp).toDate(),
+      isRecurrent: map['is_recurrent'] ?? false,
       recurrencyId: map['recurrency_id'],
       category: ReceiptCategory(
         name: map['category_name'] ?? 'Outros',
         icon: IconData(
-          int.tryParse(map['category_icon'] ?? '0xe360') ?? 0xe360, // Default to a generic icon if null
+          map['category_icon'] ?? 0xe360,
           fontFamily: 'MaterialIcons',
         ),
       ),
@@ -42,13 +43,12 @@ class Receipt {
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'title': title,
       'value': value,
-      'date': date.toIso8601String(),
+      'date': Timestamp.fromDate(date),
       'category_name': category.name,
-      'category_icon': category.icon.codePoint.toString(),
-      'is_recurrent': isRecurrent ? 1 : 0,
+      'category_icon': category.icon.codePoint,
+      'is_recurrent': isRecurrent,
       'recurrency_id': recurrencyId,
     };
   }

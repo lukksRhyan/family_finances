@@ -1,111 +1,108 @@
-import 'package:family_finances/database_helper.dart';
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../services/firestore_service.dart';
 import 'expense.dart';
 import 'receipt.dart';
 import 'shopping_item.dart';
 
 class FinanceState with ChangeNotifier {
+  FirestoreService? _firestoreService;
+  StreamSubscription? _expensesSubscription;
+  StreamSubscription? _receiptsSubscription;
+
   List<Expense> _expenses = [];
   List<Receipt> _receipts = [];
   final List<ShoppingItem> _shoppingList = [];
-  bool _isLoading = false;
-  List<Expense> get expenses => List.unmodifiable(_expenses);
-  List<Receipt> get receipts => List.unmodifiable(_receipts);
-  List<ShoppingItem> get shoppingList => List.unmodifiable(_shoppingList);
+  bool _isLoading = true;
 
-  FinanceState(){
-    loadData();
+  List<Expense> get expenses => _expenses;
+  List<Receipt> get receipts => _receipts;
+  List<ShoppingItem> get shoppingList => _shoppingList;
+  bool get isLoading => _isLoading;
+
+  FinanceState() {
+    // Ouve as mudanças de autenticação para iniciar ou limpar os dados
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        _initializeData(user.uid);
+      } else {
+        _clearData();
+      }
+    });
   }
 
-  Future<void> loadData() async {
+  void _initializeData(String uid) {
+    _firestoreService = FirestoreService(uid: uid);
     _isLoading = true;
     notifyListeners();
 
-    _expenses = await DatabaseHelper.instance.getAllExpenses();
-    _receipts = await DatabaseHelper.instance.getAllReceipts();
+    // Cancela subscrições antigas se existirem
+    _expensesSubscription?.cancel();
+    _receiptsSubscription?.cancel();
 
+    _expensesSubscription = _firestoreService!.getExpensesStream().listen((expenses) {
+      _expenses = expenses;
+      _isLoading = false;
+      notifyListeners();
+    });
+
+    _receiptsSubscription = _firestoreService!.getReceiptsStream().listen((receipts) {
+      _receipts = receipts;
+      notifyListeners();
+    });
+  }
+
+  void _clearData() {
+    _firestoreService = null;
+    _expensesSubscription?.cancel();
+    _receiptsSubscription?.cancel();
+    _expenses = [];
+    _receipts = [];
     _isLoading = false;
     notifyListeners();
   }
 
-  void addExpense(Expense expense) async {
-    final id = await DatabaseHelper.instance.createExpense(expense);
-    final newExpense = Expense(
-      id: id,
-      title: expense.title,
-      value: expense.value,
-      category: expense.category,
-      note: expense.note,
-      date: expense.date,
-      isRecurrent: expense.isRecurrent,
-      recurrencyId: expense.recurrencyId,
-      recurrencyType: expense.recurrencyType,
-      recurrentIntervalDays: expense.recurrentIntervalDays,
-      isInInstallments: expense.isInInstallments,
-      installmentCount: expense.installmentCount,
-    );
-    _expenses.insert(0, newExpense);
-    notifyListeners();
+  @override
+  void dispose() {
+    _expensesSubscription?.cancel();
+    _receiptsSubscription?.cancel();
+    super.dispose();
   }
 
-  void updateExpense(Expense expense) async {
-    if (expense.id == null) return;
-    await DatabaseHelper.instance.updateExpense(expense);
-    final index = _expenses.indexWhere((e) => e.id == expense.id);
-    if (index != -1) {
-      _expenses[index] = expense;
-      notifyListeners();
-    }
+  // As funções agora simplesmente chamam o serviço do Firestore
+  Future<void> addExpense(Expense expense) async {
+    await _firestoreService?.addExpense(expense);
   }
 
-  void deleteExpense(int id) async {
-    await DatabaseHelper.instance.deleteExpense(id);
-    _expenses.removeWhere((expense) => expense.id == id);
-    notifyListeners();
+  Future<void> updateExpense(Expense expense) async {
+    await _firestoreService?.updateExpense(expense);
   }
 
-  void addReceipt(Receipt receipt) async {
-    final id = await DatabaseHelper.instance.createReceipt(receipt);
-    final newReceipt = Receipt(
-      id: id,
-      title: receipt.title,
-      value: receipt.value,
-      category: receipt.category,
-      date: receipt.date,
-      isRecurrent: receipt.isRecurrent,
-      recurrencyId: receipt.recurrencyId,
-    );
-    _receipts.insert(0, newReceipt);
-    notifyListeners();
+  Future<void> deleteExpense(String id) async {
+    await _firestoreService?.deleteExpense(id);
   }
 
-  void updateReceipt(Receipt receipt) async {
-    if (receipt.id == null) return;
-    await DatabaseHelper.instance.updateReceipt(receipt);
-    final index = _receipts.indexWhere((r) => r.id == receipt.id);
-    if (index != -1) {
-      _receipts[index] = receipt;
-      notifyListeners();
-    }
+  Future<void> addReceipt(Receipt receipt) async {
+    await _firestoreService?.addReceipt(receipt);
   }
 
-  void deleteReceipt(int id) async {
-    await DatabaseHelper.instance.deleteReceipt(id);
-    _receipts.removeWhere((receipt) => receipt.id == id);
-    notifyListeners();
+  Future<void> updateReceipt(Receipt receipt) async {
+    await _firestoreService?.updateReceipt(receipt);
   }
 
+  Future<void> deleteReceipt(String id) async {
+    await _firestoreService?.deleteReceipt(id);
+  }
+
+  // A lógica da lista de compras permanece local por enquanto
   void addShoppingItem(ShoppingItem item) {
-    // Normaliza a descrição para comparação
     String normalize(String s) => s.trim().toLowerCase().replaceAll(' ', '');
-
     final existing = _shoppingList.firstWhere(
       (element) => normalize(element.name) == normalize(item.name),
       orElse: () => ShoppingItem(name: 'NOT_FOUND'),
     );
-
     if (existing.name != 'NOT_FOUND') {
-      // Mescla as opções, evitando duplicadas
       for (var opt in item.options) {
         bool alreadyExists = existing.options.any((o) =>
           o.brand.trim().toLowerCase() == opt.brand.trim().toLowerCase() &&
@@ -123,8 +120,8 @@ class FinanceState with ChangeNotifier {
   }
 
   void updateShoppingItem(int index, ShoppingItem item) {
-    if (index >= 0 && index < shoppingList.length) {
-      shoppingList[index] = item;
+    if (index >= 0 && index < _shoppingList.length) {
+      _shoppingList[index] = item;
       notifyListeners();
     }
   }
@@ -134,23 +131,10 @@ class FinanceState with ChangeNotifier {
     notifyListeners();
   }
 
-  double get totalReceitas {
-    return receipts.fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get totalDespesas {
-    return expenses.fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get totalReceitasAtuais {
-    return receipts.where((r) => !r.isFuture).fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get totalDespesasAtuais {
-    return expenses.where((e) => !e.isFuture).fold(0, (sum, item) => sum + item.value);
-  }
-
-  double get saldoAtual {
-    return totalReceitasAtuais - totalDespesasAtuais;
-  }
+  // Os getters permanecem os mesmos
+  double get totalReceitas => receipts.fold(0, (sum, item) => sum + item.value);
+  double get totalDespesas => expenses.fold(0, (sum, item) => sum + item.value);
+  double get totalReceitasAtuais => receipts.where((r) => !r.isFuture).fold(0, (sum, item) => sum + item.value);
+  double get totalDespesasAtuais => expenses.where((e) => !e.isFuture).fold(0, (sum, item) => sum + item.value);
+  double get saldoAtual => totalReceitasAtuais - totalDespesasAtuais;
 }

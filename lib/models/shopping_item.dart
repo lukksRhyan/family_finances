@@ -1,11 +1,9 @@
-import 'dart:convert';
-
 class ShoppingItemOption {
   final String brand;
   final String store;
   final double price;
   final String quantity;
-  
+
   ShoppingItemOption({
     required this.brand,
     required this.store,
@@ -24,16 +22,16 @@ class ShoppingItemOption {
 
   factory ShoppingItemOption.fromMap(Map<String, dynamic> map) {
     return ShoppingItemOption(
-      brand: map['brand'],
-      store: map['store'],
-      price: map['price'],
-      quantity: map['quantity'],
+      brand: map['brand'] ?? '',
+      store: map['store'] ?? '',
+      price: (map['price'] as num? ?? 0).toDouble(),
+      quantity: map['quantity'] ?? '',
     );
   }
 }
 
 class ShoppingItem {
-  final int? id;
+  final String? id; // Alterado para String
   final String name;
   bool isChecked;
   final List<ShoppingItemOption> options;
@@ -45,24 +43,29 @@ class ShoppingItem {
     this.options = const [],
   });
 
+  // toMap agora guarda as opções como uma lista de mapas
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
       'name': name,
-      'is_checked': isChecked ? 1 : 0,
-      'options': jsonEncode(options.map((option) => option.toMap()).toList()),
+      'isChecked': isChecked,
+      'options': options.map((option) => option.toMap()).toList(),
     };
   }
 
-  factory ShoppingItem.fromMap(Map<String, dynamic> map) {
-    final List<dynamic> optionsMap = jsonDecode(map['options']);
-    final options = optionsMap.map((e) => ShoppingItemOption.fromMap(e)).toList();
+  // fromMap agora lê a lista de mapas diretamente
+  factory ShoppingItem.fromMap(Map<String, dynamic> map, {String? id}) {
+    var optionsList = <ShoppingItemOption>[];
+    if (map['options'] is List) {
+      optionsList = (map['options'] as List)
+          .map((e) => ShoppingItemOption.fromMap(e as Map<String, dynamic>))
+          .toList();
+    }
 
     return ShoppingItem(
-      id: map['id'],
-      name: map['name'],
-      isChecked: map['is_checked'] == 1,
-      options: options,
+      id: id,
+      name: map['name'] ?? '',
+      isChecked: map['isChecked'] ?? false,
+      options: optionsList,
     );
   }
 }

@@ -65,4 +65,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'family-invest-65acc.firebasestorage.app',
     iosBundleId: 'com.example.familyFinances',
   );
+
 }
