@@ -1,3 +1,4 @@
+import 'package:family_finances/widgets/input_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/finance_state.dart';
@@ -11,11 +12,10 @@ class ShoppingListScreen extends StatefulWidget {
 }
 
 class _ShoppingListScreenState extends State<ShoppingListScreen> {
-  int? expandedIndex;
-  int selectedOptionIndex = 0;
-
+  
   @override
   Widget build(BuildContext context) {
+    // Ouve as mudanças na lista de compras do FinanceState
     final shoppingList = Provider.of<FinanceState>(context).shoppingList;
     const Color primaryColor = Color(0xFF2A8782);
 
@@ -26,7 +26,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         itemCount: shoppingList.length,
         itemBuilder: (context, index) {
           final item = shoppingList[index];
-          return _buildShoppingItem(context, index, item);
+          return _buildShoppingItem(context, item);
         },
       ),
       floatingActionButton: FloatingActionButton(
@@ -41,23 +41,24 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     );
   }
 
-  Widget _buildShoppingItem(BuildContext context, int index, ShoppingItem item) {
+  Widget _buildShoppingItem(BuildContext context, ShoppingItem item) {
     final financeState = Provider.of<FinanceState>(context, listen: false);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: ExpansionTile(
-        key: Key(item.id ?? item.name), // Usa o ID do Firestore
+        key: Key(item.id!), // Usa o ID do Firestore que é garantido
         leading: Checkbox(
           value: item.isChecked,
           onChanged: (bool? value) {
+            // Chama o método correto no FinanceState, passando o objeto
             financeState.toggleShoppingItemChecked(item, value!);
           },
           activeColor: const Color(0xFF2A8782),
         ),
         title: Text(item.name, style: const TextStyle(fontSize: 16)),
         children: [
-          // Lógica interna do ExpansionTile (sem alterações)...
+          // A lógica para mostrar as opções pode ser adicionada aqui se desejar
           if (item.options.isEmpty)
             const Padding(
               padding: EdgeInsets.all(8.0),
@@ -78,7 +79,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               IconButton(
                 icon: const Icon(Icons.delete, color: Colors.redAccent),
                 onPressed: () {
-                  financeState.deleteShoppingItem(item.id!);
+                  // Chama o método de apagar no FinanceState, passando o ID
+                  if (item.id != null) {
+                    financeState.deleteShoppingItem(item.id!);
+                  }
                 },
               ),
             ],
@@ -89,6 +93,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   }
 }
 
+// O ecrã AddShoppingItemScreen está correto e não precisa de alterações
 class AddShoppingItemScreen extends StatefulWidget {
   final ShoppingItem? editItem;
   
@@ -106,8 +111,8 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
 
-  final List<String> _units = ['g', 'kg', 'un', 'ml', 'L', 'cx', 'pct'];
-  String _selectedUnit = 'g';
+  final List<String> _units = ['un','g', 'kg',  'ml', 'L', 'cx', 'pct'];
+  String _selectedUnit = 'un';
 
   @override
   void initState() {
@@ -149,28 +154,12 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
           children: [
             TextField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Nome do produto'),
-              enabled: widget.editItem == null,
+              decoration: const InputDecoration(labelText: 'Produto'),
+              enabled: widget.editItem == null, // Não permite editar o nome para evitar duplicatas
             ),
             const SizedBox(height: 16),
             const Text('Opções (marca, estabelecimento, quantidade, valor):', style: TextStyle(fontWeight: FontWeight.bold)),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _brandController,
-                    decoration: const InputDecoration(labelText: 'Marca'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _storeController,
-                    decoration: const InputDecoration(labelText: 'Estabelecimento'),
-                  ),
-                ),
-              ],
-            ),
+            
             Row(
               children: [
                 const SizedBox(width: 8),
@@ -200,20 +189,43 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _priceController,
-                    decoration: const InputDecoration(labelText: 'Preço'),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: _addOption,
                 ),
               ],
             ),
+                
+
+                InputCard(
+                  child: 
+                  Column(
+                    children: [
+                      Align(
+                      alignment: Alignment.centerLeft,
+                      child: const Text("Opcionais", textAlign: TextAlign.left,),),
+                      
+                  TextField(
+                    controller: _storeController,
+                    decoration: const InputDecoration(labelText: 'Estabelecimento'),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(),
+                   TextField(
+                    controller: _brandController,
+                    decoration: const InputDecoration(labelText: 'Marca'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _priceController,
+                    decoration: const InputDecoration(labelText: 'Preço'),
+                    keyboardType: TextInputType.number,
+                  ),
+                    ],
+                  ),
+                
+                ),
+
             Expanded(
               child: ListView(
                 children: _options.map((opt) => ListTile(
@@ -228,7 +240,7 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
                 if (_nameController.text.isNotEmpty) {
                   final financeState = Provider.of<FinanceState>(context, listen: false);
                   final item = ShoppingItem(
-                    id: widget.editItem?.id, // Passa o ID para atualização
+                    id: widget.editItem?.id, // Passa o ID se estiver a editar
                     name: _nameController.text,
                     options: _options,
                     isChecked: widget.editItem?.isChecked ?? false,
@@ -250,3 +262,4 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
     );
   }
 }
+
