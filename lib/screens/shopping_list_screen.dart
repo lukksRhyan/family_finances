@@ -122,7 +122,24 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
         ? List<ShoppingItemOption>.from(widget.editItem!.options)
         : [];
   }
+  void _saveChanges(){
+if (_nameController.text.isNotEmpty) {
+                  final financeState = Provider.of<FinanceState>(context, listen: false);
+                  final item = ShoppingItem(
+                    id: widget.editItem?.id, // Passa o ID se estiver a editar
+                    name: _nameController.text,
+                    options: _options,
+                    isChecked: widget.editItem?.isChecked ?? false,
+                  );
 
+                  if (widget.editItem != null) {
+                    financeState.updateShoppingItem(item);
+                  } else {
+                    financeState.addShoppingItem(item);
+                  }
+                  
+                }
+  }
   void _addOption() {
     if (_brandController.text.isNotEmpty &&
         _storeController.text.isNotEmpty &&
@@ -141,6 +158,7 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
         _quantityController.clear();
         _selectedUnit = _units[0];
       });
+      _saveChanges();
     }
   }
 
@@ -157,8 +175,6 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
               decoration: const InputDecoration(labelText: 'Produto'),
               enabled: widget.editItem == null, // Não permite editar o nome para evitar duplicatas
             ),
-            const SizedBox(height: 16),
-            const Text('Opções (marca, estabelecimento, quantidade, valor):', style: TextStyle(fontWeight: FontWeight.bold)),
             
             Row(
               children: [
@@ -237,22 +253,8 @@ class _AddShoppingItemScreenState extends State<AddShoppingItemScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                if (_nameController.text.isNotEmpty) {
-                  final financeState = Provider.of<FinanceState>(context, listen: false);
-                  final item = ShoppingItem(
-                    id: widget.editItem?.id, // Passa o ID se estiver a editar
-                    name: _nameController.text,
-                    options: _options,
-                    isChecked: widget.editItem?.isChecked ?? false,
-                  );
-
-                  if (widget.editItem != null) {
-                    financeState.updateShoppingItem(item);
-                  } else {
-                    financeState.addShoppingItem(item);
-                  }
-                  Navigator.of(context).pop();
-                }
+                _saveChanges();
+                Navigator.of(context).pop();
               },
               child: Text(widget.editItem == null ? 'Salvar' : 'Salvar alterações'),
             ),
