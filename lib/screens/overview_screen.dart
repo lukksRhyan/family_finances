@@ -1,6 +1,6 @@
 import 'package:family_finances/screens/qr_code_scanner_screen.dart';
 import 'package:family_finances/styles/section_style.dart';
-import 'package:family_finances/utils/nfce_parser.dart';
+import 'package:family_finances/services/nfce_service.dart';
 import 'package:family_finances/widgets/row_option.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -244,6 +244,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
     if (url != null && context.mounted) {
       final String? accessKey = url;//extractAccessKeyFromUrl(url); //Alterar de volta para fazer requisição para SEFAZ
+      final List<ScrapedItem> items = await NfceService().fetchAndParseNfce(url);
+      print(items.toString());
 
       if (accessKey != null) {
         ScaffoldMessenger.of(context).showSnackBar(
