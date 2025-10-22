@@ -43,6 +43,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     ExpenseCategory(name: 'Moradia', icon: Icons.home),
     ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
     ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
+    ExpenseCategory(name: 'Compras', icon: Icons.shopping_cart),
+    ExpenseCategory(name: 'Saúde', icon: Icons.local_hospital),
+    ExpenseCategory(name: 'Educação', icon: Icons.school),
+    ExpenseCategory(name: 'Outros', icon: Icons.category),
   ];
 
   ExpenseCategory? _selectedCategory;

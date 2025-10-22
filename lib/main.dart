@@ -9,17 +9,15 @@ import 'models/finance_state.dart';
 import 'screens/auth_gate.dart';
 import 'styles/app_theme.dart';
 
-// 3. Transformar a função main em assíncrona
+
 void main() async {
-  // Garante que os bindings do Flutter estão prontos
+  
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 4. Inicializa o Firebase com as opções da plataforma atual
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Lógica para o sqflite em desktop (pode ser mantida por segurança)
   if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;

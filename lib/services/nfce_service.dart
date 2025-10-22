@@ -20,11 +20,12 @@ class NfceData {
   final List<ScrapedItem> items;
   final double totalValue;
   final String taxInfo; 
-
+  final String nFNumber;
   NfceData({
     required this.items,
     required this.totalValue,
     required this.taxInfo,
+    required this.nFNumber,
   });
 }
 
@@ -37,6 +38,13 @@ class NfceService {
       if (response.statusCode == 200) {
         final document = xml.XmlDocument.parse(response.body);
 
+
+        final nFNumberText = (() {
+          try {
+            final nFElement = document.findAllElements('nNF').first;
+            return nFElement.innerText;
+          } catch (e) { return ''; }
+        })();
         // --- Extração dos Itens (sem grandes alterações) ---
         final productsXml = document.findAllElements('det');
         final List<ScrapedItem> items = [];
@@ -76,6 +84,7 @@ class NfceService {
         String taxInfo = '';
         try {
           // Procura por infCpl dentro de infAdic
+      
           final infAdicElement = document.findAllElements('infAdic').firstOrNull;
           if (infAdicElement != null) {
               final infCplElement = infAdicElement.findAllElements('infCpl').firstOrNull;
@@ -100,6 +109,7 @@ class NfceService {
           items: items,
           totalValue: totalValue,
           taxInfo: taxInfo,
+          nFNumber: nFNumberText,
         );
       } else {
         throw Exception('Falha ao carregar a página da NFC-e. Código de status: ${response.statusCode}');

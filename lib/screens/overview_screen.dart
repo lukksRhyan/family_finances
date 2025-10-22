@@ -1,3 +1,4 @@
+import 'package:family_finances/models/expense_category.dart';
 import 'package:family_finances/screens/qr_code_scanner_screen.dart';
 import 'package:family_finances/styles/section_style.dart';
 import 'package:family_finances/services/nfce_service.dart';
@@ -243,15 +244,26 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
 
     if (url != null && context.mounted) {
-      final String? accessKey = url;//extractAccessKeyFromUrl(url); //Alterar de volta para fazer requisição para SEFAZ
+
       final NfceData data = await NfceService().fetchAndParseNfce(url);
       print(data.items.toString());
       print(data.totalValue.toString());
       print(data.taxInfo.toString());
       
-      if (accessKey != null) {
+      if (data != null) {
+        final financeState = Provider.of<FinanceState>(context, listen: false);
+        financeState.addExpense( Expense(
+                        id: "0000",
+                        title: "Compras NFC-e nº ${data.nFNumber}",
+                        value: data.totalValue,
+                        category: ExpenseCategory(name: "Compras", icon: Icons.shopping_cart),
+                        note: data.taxInfo,
+                        date: DateTime.now(),
+                        isRecurrent: false,
+                        isInInstallments: false,
+        ));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Chave de Acesso: $accessKey')),
+          SnackBar(content: Text('Nota nº ${data.nFNumber} importada com sucesso! Valor Total: R\$ ${data.totalValue.toStringAsFixed(2)}')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
