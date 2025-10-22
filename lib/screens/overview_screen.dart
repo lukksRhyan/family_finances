@@ -257,7 +257,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                         title: "Compras NFC-e nº ${data.nFNumber}",
                         value: data.totalValue,
                         category: ExpenseCategory(name: "Compras", icon: Icons.shopping_cart),
-                        note: data.taxInfo,
+                        note: data.items.map((item) => "${item.name} - Qty: ${item.quantity}, Unit Price: R\$ ${item.unitPrice.toStringAsFixed(2)}, Total: R\$ ${item.totalPrice.toStringAsFixed(2)}").join("\n"),
                         date: DateTime.now(),
                         isRecurrent: false,
                         isInInstallments: false,

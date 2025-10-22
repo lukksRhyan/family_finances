@@ -14,6 +14,10 @@ class ScrapedItem {
     required this.unitPrice,
     required this.totalPrice,
   });
+  @override
+  String toString() {
+    return '$quantity X $name a $unitPrice = $totalPrice}';
+  }
 }
 
 class NfceData {
@@ -27,6 +31,14 @@ class NfceData {
     required this.taxInfo,
     required this.nFNumber,
   });
+
+  String itensList() {
+    String result = '';
+    for (var item in items) {
+      result += item.toString() +'\n';
+    }
+    return result;
+  }
 }
 
 class NfceService {
