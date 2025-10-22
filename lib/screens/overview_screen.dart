@@ -244,9 +244,11 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
     if (url != null && context.mounted) {
       final String? accessKey = url;//extractAccessKeyFromUrl(url); //Alterar de volta para fazer requisição para SEFAZ
-      final List<ScrapedItem> items = await NfceService().fetchAndParseNfce(url);
-      print(items.toString());
-
+      final NfceData data = await NfceService().fetchAndParseNfce(url);
+      print(data.items.toString());
+      print(data.totalValue.toString());
+      print(data.taxInfo.toString());
+      
       if (accessKey != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Chave de Acesso: $accessKey')),

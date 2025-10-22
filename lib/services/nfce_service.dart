@@ -1,7 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 
-// A classe ScrapedItem permanece a mesma
+// Classe para guardar os dados de um item (sem alterações)
 class ScrapedItem {
   final String name;
   final double quantity;
@@ -16,63 +16,95 @@ class ScrapedItem {
   });
 }
 
+class NfceData {
+  final List<ScrapedItem> items;
+  final double totalValue;
+  final String taxInfo; 
+
+  NfceData({
+    required this.items,
+    required this.totalValue,
+    required this.taxInfo,
+  });
+}
+
 class NfceService {
-  /// Faz a requisição HTTP para a URL da NFC-e, analisa o XML e extrai os itens.
-  Future<List<ScrapedItem>> fetchAndParseNfce(String url) async {
+  /// Faz a requisição HTTP, analisa o XML e extrai os itens, valor total e impostos.
+  Future<NfceData> fetchAndParseNfce(String url) async {
     try {
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
-        // 1. Analisa a resposta como um documento XML
         final document = xml.XmlDocument.parse(response.body);
 
-        // 2. Encontra todos os elementos <det> (detalhe do produto)
-        final products = document.findAllElements('det');
+        // --- Extração dos Itens (sem grandes alterações) ---
+        final productsXml = document.findAllElements('det');
         final List<ScrapedItem> items = [];
-
-        for (final product in products) {
-          // Função auxiliar para encontrar e obter o valor de um nó filho
-          String getElementText(String elementName) {
+        for (final product in productsXml) {
+           // Função auxiliar interna (sem alterações)
+           String getElementText(xml.XmlElement parent, String elementName) {
             try {
-              return product.findAllElements(elementName).first.innerText;
-            } catch (e) {
-              return ''; // Retorna string vazia se o elemento não for encontrado
-            }
+              return parent.findAllElements(elementName).first.innerText;
+            } catch (e) { return ''; }
           }
+           String getProdElementText(String elementName) => getElementText(product.getElement('prod')!, elementName);
+           
+          final String name = getProdElementText('xProd');
+          final String qtyText = getProdElementText('qCom');
+          final String unitPriceText = getProdElementText('vUnCom');
+          final String totalPriceText = getProdElementText('vProd');
 
-          // 3. Extrai os dados de cada produto
-          final String name = getElementText('xProd');
-          final String qtyText = getElementText('qCom');
-          final String unitPriceText = getElementText('vUnCom');
-          final String totalPriceText = getElementText('vProd');
-          
-          // Converte os textos para números
           final double quantity = double.tryParse(qtyText) ?? 0;
           final double unitPrice = double.tryParse(unitPriceText) ?? 0;
           final double totalPrice = double.tryParse(totalPriceText) ?? 0;
-          
+
           if (name.isNotEmpty) {
-            ScrapedItem newItem = ScrapedItem(
-              name: name,
-              quantity: quantity,
-              unitPrice: unitPrice,
-              totalPrice: totalPrice,
-            ); 
-            items.add(newItem);
-            print(newItem.name);
+            items.add(ScrapedItem(
+              name: name, quantity: quantity, unitPrice: unitPrice, totalPrice: totalPrice,
+            ));
           }
         }
-        
-        if (items.isEmpty) {
-          throw Exception('Nenhum produto encontrado no XML da NFC-e.');
+
+        // --- Extração do Valor Total ---
+         double totalValue = 0;
+         try {
+           final totalElement = document.findAllElements('vNF').first;
+           totalValue = double.tryParse(totalElement.innerText) ?? 0;
+         } catch(e) {/* Ignora se não encontrar */}
+
+        // --- Extração das Informações Adicionais (Impostos) ---
+        String taxInfo = '';
+        try {
+          // Procura por infCpl dentro de infAdic
+          final infAdicElement = document.findAllElements('infAdic').firstOrNull;
+          if (infAdicElement != null) {
+              final infCplElement = infAdicElement.findAllElements('infCpl').firstOrNull;
+              if (infCplElement != null) {
+                  taxInfo = infCplElement.innerText.trim();
+                  // Tenta extrair apenas a parte dos tributos se existir
+                   final tribRegex = RegExp(r'Trib\. aprox: R\$.*Fonte IBPT');
+                   final match = tribRegex.firstMatch(taxInfo);
+                   if (match != null) {
+                     taxInfo = match.group(0)!; // Pega só a parte dos tributos
+                   }
+              }
+          }
+        } catch (e) {/* Ignora se não encontrar */}
+
+
+        if (items.isEmpty && totalValue == 0) {
+           throw Exception('Nenhum dado relevante encontrado no XML da NFC-e.');
         }
 
-        return items;
+        return NfceData(
+          items: items,
+          totalValue: totalValue,
+          taxInfo: taxInfo,
+        );
       } else {
         throw Exception('Falha ao carregar a página da NFC-e. Código de status: ${response.statusCode}');
       }
     } catch (e) {
-      // Propaga o erro para a interface do utilizador.
       rethrow;
     }
   }
