@@ -2,17 +2,38 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 
 // Classe para guardar os dados de um item (sem alterações)
-class ScrapedItem {
+class ProductCategory{
+  final String name;
+  final String icon;
+  const ProductCategory({
+    required this.name,
+    required this.icon,
+  });
+  /* 
+    Limpeza da Casa
+    Refeições
+    Bebidas
+    Lanches(besteiras)
+    Higiene Pessoal
+    Pets
+    Diversão
+  */
+
+}
+class NoteProduct {
   final String name;
   final double quantity;
   final double unitPrice;
   final double totalPrice;
-
-  ScrapedItem({
+  final ProductCategory category;
+  static const apiKey = String.fromEnvironment('GEMINI_API_KEY');
+  NoteProduct({
     required this.name,
     required this.quantity,
     required this.unitPrice,
     required this.totalPrice,
+    required this.category,
+
   });
   @override
   String toString() {
@@ -21,7 +42,7 @@ class ScrapedItem {
 }
 
 class NfceData {
-  final List<ScrapedItem> items;
+  final List<NoteProduct> items;
   final double totalValue;
   final String taxInfo; 
   final String nFNumber;
@@ -59,7 +80,7 @@ class NfceService {
         })();
         // --- Extração dos Itens (sem grandes alterações) ---
         final productsXml = document.findAllElements('det');
-        final List<ScrapedItem> items = [];
+        final List<NoteProduct> items = [];
         for (final product in productsXml) {
            // Função auxiliar interna (sem alterações)
            String getElementText(xml.XmlElement parent, String elementName) {
@@ -79,8 +100,8 @@ class NfceService {
           final double totalPrice = double.tryParse(totalPriceText) ?? 0;
 
           if (name.isNotEmpty) {
-            items.add(ScrapedItem(
-              name: name, quantity: quantity, unitPrice: unitPrice, totalPrice: totalPrice,
+            items.add(NoteProduct(
+              name: name, quantity: quantity, unitPrice: unitPrice, totalPrice: totalPrice, category: ProductCategory(name: 'Default', icon: 'default_icon.png'),
             ));
           }
         }

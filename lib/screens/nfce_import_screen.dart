@@ -6,7 +6,7 @@ import '../models/finance_state.dart';
 import '../services/nfce_service.dart';
 
 class NfceImportScreen extends StatefulWidget {
-  final List<ScrapedItem> items;
+  final List<NoteProduct> items;
   const NfceImportScreen({super.key, required this.items});
 
   @override
