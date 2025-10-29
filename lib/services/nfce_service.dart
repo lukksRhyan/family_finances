@@ -1,3 +1,4 @@
+import 'package:family_finances/models/product.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 
@@ -9,35 +10,25 @@ class ProductCategory{
     required this.name,
     required this.icon,
   });
-  /* 
-    Limpeza da Casa
-    Refeições
-    Bebidas
-    Lanches(besteiras)
-    Higiene Pessoal
-    Pets
-    Diversão
-  */
+
 
 }
 class NoteProduct {
   final String name;
+  final Product product;
   final double quantity;
-  final double unitPrice;
   final double totalPrice;
-  final ProductCategory category;
+  
   static const apiKey = String.fromEnvironment('GEMINI_API_KEY');
   NoteProduct({
     required this.name,
     required this.quantity,
-    required this.unitPrice,
     required this.totalPrice,
-    required this.category,
-
+    required this.product,
   });
   @override
   String toString() {
-    return '$quantity X $name a $unitPrice = $totalPrice}';
+    return '$quantity X $name a $product.option = $totalPrice}';
   }
 }
 

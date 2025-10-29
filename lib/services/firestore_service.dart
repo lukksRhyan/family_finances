@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:family_finances/models/shopping_item.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
-import '../models/shopping_item.dart';
+import '../models/product.dart';
 
 class FirestoreService {
   final String uid;

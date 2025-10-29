@@ -1,10 +1,10 @@
 import 'dart:async';
+import 'package:family_finances/models/shopping_item.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
 import 'expense.dart';
 import 'receipt.dart';
-import 'shopping_item.dart';
 
 class FinanceState with ChangeNotifier {
   FirestoreService? _firestoreService;
