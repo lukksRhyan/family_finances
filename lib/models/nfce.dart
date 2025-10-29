@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'nfce_item_detail.dart';
 
-class NotaFiscal {
+class Nfce {
   final String? id; // ID do documento no Firestore
   final String userId; // ID do usuário que importou
   final String nfceKey; // Chave de acesso de 44 dígitos
@@ -12,7 +12,7 @@ class NotaFiscal {
   // Poderia armazenar os detalhes dos itens aqui também, se útil
   final List<NfceItemDetail> items; // Armazena uma cópia dos itens lidos
 
-  NotaFiscal({
+  Nfce({
     this.id,
     required this.userId,
     required this.nfceKey,
@@ -37,14 +37,14 @@ class NotaFiscal {
   }
 
   // Método para converter de Map (útil para Firestore)
-  factory NotaFiscal.fromMap(Map<String, dynamic> map, String id) {
+  factory Nfce.fromMap(Map<String, dynamic> map, String id) {
      var itemsList = <NfceItemDetail>[];
     if (map['items'] is List) {
       itemsList = (map['items'] as List)
           .map((e) => NfceItemDetail.fromMap(e as Map<String, dynamic>))
           .toList();
     }
-    return NotaFiscal(
+    return Nfce(
       id: id,
       userId: map['userId'] ?? '',
       nfceKey: map['nfceKey'] ?? '',

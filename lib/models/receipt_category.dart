@@ -4,6 +4,17 @@ class ReceiptCategory {
   final String name;
   final IconData icon;
 
+  static const List<ReceiptCategory> basicCategories =[
+    ReceiptCategory(name: 'Limpeza', icon: Icons.monetization_on),
+    ReceiptCategory(name: 'Alimentação', icon: Icons.card_giftcard),
+    ReceiptCategory(name: 'Lanches', icon: Icons.trending_up),
+    ReceiptCategory(name: 'Outros', icon: Icons.add_circle_outline),
+  ];
+  static List<ReceiptCategory> allCategories(){
+    List<ReceiptCategory> customCategories =[];
+    return basicCategories+customCategories;
+  }
+
   const ReceiptCategory({required this.name, required this.icon});
 
   @override
