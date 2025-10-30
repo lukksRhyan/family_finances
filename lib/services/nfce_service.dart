@@ -23,7 +23,7 @@ class NfceService {
   }
 
 
-  Future<Nfce> fetchAndParseNfce(String url, String userId) async {
+  Future<Nfce> fetchAndParseNfce(String url) async {
     try {
       // Adiciona um timeout à requisição para evitar travamentos
       final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 15));
@@ -85,6 +85,7 @@ class NfceService {
 
         // --- Extração dos Itens ---
         final productsXml = infNFeElement.findAllElements('det');
+        
         final List<NfceItemDetail> items = [];
         for (final product in productsXml) {
           final prodElement = product.getElement('prod');
@@ -115,7 +116,6 @@ class NfceService {
 
         // Cria e retorna o objeto NotaFiscal completo
         return Nfce(
-          userId: userId,
           nfceKey: nfceKey,
           storeName: storeName,
           totalValue: totalValue,

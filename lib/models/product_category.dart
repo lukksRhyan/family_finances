@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class ProductCategory {
-  final String id; // Para referência, se gerido centralmente no futuro
+  final String id; 
   final String name;
   final IconData icon;
-  int? defaultPriority; // Prioridade padrão associada à categoria (opcional)
+  int? defaultPriority;
 
   ProductCategory({
     required this.id,

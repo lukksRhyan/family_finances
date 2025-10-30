@@ -134,7 +134,6 @@ class NfceService {
         print('NFC-e parseada com sucesso. Itens: ${items.length}, Valor: $totalValue');
         // Cria e retorna o objeto Nfce completo
         return Nfce(
-          userId: userId,
           nfceKey: nfceKey,
           storeName: storeName,
           totalValue: totalValue,

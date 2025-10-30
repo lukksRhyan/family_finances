@@ -18,8 +18,19 @@ class Product {
     this.priority,
     this.options = const [],
     this.isChecked = false,
-  }) : nameLower = name.toLowerCase(); // Garante que nameLower é sempre minúsculo
-
+  }) : nameLower = name.toLowerCase(); 
+  
+  // Garante que nameLower é sempre minúsculo
+  static Product notFound() {
+    return Product(
+      id: null,
+      name: 'Produto não encontrado',
+      category: ProductCategory.indefinida,
+      priority: 0,
+      options: [],
+      isChecked: false,
+    );
+    }
   // Método para converter para Map (útil para Firestore)
   Map<String, dynamic> toMap() {
     return {

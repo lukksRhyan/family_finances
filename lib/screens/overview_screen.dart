@@ -1,4 +1,5 @@
 import 'package:family_finances/models/expense_category.dart';
+import 'package:family_finances/models/nfce.dart';
 import 'package:family_finances/screens/qr_code_scanner_screen.dart';
 import 'package:family_finances/styles/section_style.dart';
 import 'package:family_finances/services/nfce_service.dart';
@@ -245,7 +246,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
     if (url != null && context.mounted) {
 
-      final NfceData data = await NfceService().fetchAndParseNfce(url);
+      final Nfce data = await NfceService().fetchAndParseNfce(url);
       print(data.items.toString());
       print(data.totalValue.toString());
       print(data.taxInfo.toString());
@@ -254,7 +255,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         final financeState = Provider.of<FinanceState>(context, listen: false);
         financeState.addExpense( Expense(
                         id: "0000",
-                        title: "Compras NFC-e nº ${data.nFNumber}",
+                        title: "Compras NFC-e nº ${data.nfceKey}",
                         value: data.totalValue,
                         category: ExpenseCategory(name: "Compras", icon: Icons.shopping_cart),
                         note: data.items.map((item) => "${item.name} - Qty: ${item.quantity}, Unit Price: R\$ ${item.unitPrice.toStringAsFixed(2)}, Total: R\$ ${item.totalPrice.toStringAsFixed(2)}").join("\n"),
@@ -263,7 +264,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                         isInInstallments: false,
         ));
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Nota nº ${data.nFNumber} importada com sucesso! Valor Total: R\$ ${data.totalValue.toStringAsFixed(2)}')),
+          SnackBar(content: Text('Nota nº ${data.nfceKey} importada com sucesso! Valor Total: R\$ ${data.totalValue.toStringAsFixed(2)}')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(

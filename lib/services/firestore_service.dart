@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:family_finances/models/shopping_item.dart';
+import 'package:family_finances/models/product_category.dart';
+// Remove a importação do 'shopping_item.dart'
 import '../models/expense.dart';
 import '../models/receipt.dart';
-import '../models/product.dart';
+import '../models/product.dart'; // Importa o novo modelo Product
+
 
 class FirestoreService {
   final String uid;
@@ -17,10 +19,18 @@ class FirestoreService {
       _usersCollection.doc(uid).collection('expenses');
   CollectionReference get _receiptsCollection =>
       _usersCollection.doc(uid).collection('receipts');
-  CollectionReference get _shoppingListCollection =>
-      _usersCollection.doc(uid).collection('shoppingList');
+  
+  // *** INÍCIO DAS ALTERAÇÕES ***
+  
+  // Nova coleção para Produtos
+  CollectionReference get _productsCollection =>
+      _usersCollection.doc(uid).collection('products');
+  
+  // Nova coleção para Categorias de Produto
+  CollectionReference get _productCategoriesCollection =>
+      _usersCollection.doc(uid).collection('productCategories');
 
-  // --- Métodos para Despesas ---
+  // --- Métodos para Despesas (sem alteração) ---
   Future<void> addExpense(Expense expense) =>
       _expensesCollection.add(expense.toMap());
   Future<void> updateExpense(Expense expense) =>
@@ -35,7 +45,7 @@ class FirestoreService {
             .toList());
   }
 
-  // --- Métodos para Receitas ---
+  // --- Métodos para Receitas (sem alteração) ---
   Future<void> addReceipt(Receipt receipt) =>
       _receiptsCollection.add(receipt.toMap());
   Future<void> updateReceipt(Receipt receipt) =>
@@ -50,27 +60,74 @@ class FirestoreService {
             .toList());
   }
 
-  // --- MÉTODOS PARA A LISTA DE COMPRAS ---
+  // --- MÉTODOS PARA PRODUTOS (NOVOS/ATUALIZADOS) ---
 
-  /// Adiciona um novo item à lista de compras.
-  Future<void> addShoppingItem(ShoppingItem item) =>
-      _shoppingListCollection.add(item.toMap());
+  // Função auxiliar para buscar todas as categorias e mapeá-las por ID
+  Future<Map<String, ProductCategory>> _getCategoryMap() async {
+    final snapshot = await _productCategoriesCollection.get();
+    final categories = snapshot.docs.map((doc) {
+      return ProductCategory.fromMap(doc.data() as Map<String, dynamic>);
+    }).toList();
+    
+    // Mapeia as categorias por ID
+    Map<String, ProductCategory> categoryMap = {
+      for (var cat in categories) cat.id!: cat
+    };
+    
+    // Adiciona a categoria "indefinida" ao mapa para garantir que ela exista
+    categoryMap[ProductCategory.indefinida.id!] = ProductCategory.indefinida;
+    
+    return categoryMap;
+  }
+  
+  /// Adiciona um novo produto à coleção.
+  Future<void> addProduct(Product product) =>
+      _productsCollection.add(product.toMap());
 
-  /// Atualiza um item existente na lista de compras.
-  Future<void> updateShoppingItem(ShoppingItem item) =>
-      _shoppingListCollection.doc(item.id).update(item.toMap());
+  /// Atualiza um produto existente.
+  Future<void> updateProduct(Product product) =>
+      _productsCollection.doc(product.id).update(product.toMap());
 
-  /// Apaga um item da lista de compras pelo seu ID.
-  Future<void> deleteShoppingItem(String id) =>
-      _shoppingListCollection.doc(id).delete();
+  /// Apaga um produto pelo seu ID.
+  Future<void> deleteProduct(String id) =>
+      _productsCollection.doc(id).delete();
 
-  /// Obtém um stream (fluxo em tempo real) da lista de compras.
-  Stream<List<ShoppingItem>> getShoppingListStream() {
-    return _shoppingListCollection
+  /// Obtém um stream (fluxo em tempo real) dos produtos.
+  Stream<List<Product>> getProductsStream() {
+    // Ouve as mudanças nos produtos
+    return _productsCollection.snapshots().asyncMap((productSnapshot) async {
+      // A cada mudança nos produtos, busca o mapa atual de categorias
+      final categoryMap = await _getCategoryMap();
+      
+      final products = productSnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        // Converte os dados do produto
+        return Product.fromMap(
+          data,
+          doc.id,
+          categoryMap[data['categoryId']] ?? ProductCategory.indefinida,
+        );
+      }).toList();
+      
+      return products;
+    });
+  }
+
+  // --- Métodos para Categorias de Produto ---
+  
+  /// Obtém um stream (fluxo em tempo real) das categorias
+  Stream<List<ProductCategory>> getCategoriesStream() {
+     return _productCategoriesCollection
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => ShoppingItem.fromMap(doc.data() as Map<String, dynamic>, id: doc.id))
+            .map((doc) => ProductCategory.fromMap(doc.data() as Map<String, dynamic>))
             .toList());
   }
+
+  /// Adiciona uma nova categoria de produto
+  Future<void> addProductCategory(ProductCategory category) =>
+      _productCategoriesCollection.add(category.toMap());
+      
+  // (Pode adicionar métodos update/delete para categorias se necessário)
 }
 

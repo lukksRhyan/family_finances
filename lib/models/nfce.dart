@@ -3,7 +3,7 @@ import 'nfce_item_detail.dart';
 
 class Nfce {
   final String? id; // ID do documento no Firestore
-  final String userId; // ID do usuário que importou
+
   final String nfceKey; // Chave de acesso de 44 dígitos
   final String storeName;
   final double totalValue;
@@ -14,7 +14,7 @@ class Nfce {
 
   Nfce({
     this.id,
-    required this.userId,
+
     required this.nfceKey,
     required this.storeName,
     required this.totalValue,
@@ -26,7 +26,7 @@ class Nfce {
   // Método para converter para Map (útil para Firestore)
   Map<String, dynamic> toMap() {
     return {
-      'userId': userId,
+
       'nfceKey': nfceKey,
       'storeName': storeName,
       'totalValue': totalValue,
@@ -46,7 +46,7 @@ class Nfce {
     }
     return Nfce(
       id: id,
-      userId: map['userId'] ?? '',
+
       nfceKey: map['nfceKey'] ?? '',
       storeName: map['storeName'] ?? 'Loja Desconhecida',
       totalValue: (map['totalValue'] as num?)?.toDouble() ?? 0.0,

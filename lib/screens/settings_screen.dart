@@ -1,3 +1,5 @@
+import 'package:family_finances/models/product.dart';
+import 'package:family_finances/models/product_category.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +9,6 @@ import 'package:path_provider/path_provider.dart';
 import '../models/finance_state.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
-import '../models/shopping_item.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Importe o Firebase Auth
 
 class SettingsScreen extends StatelessWidget {
@@ -19,7 +20,7 @@ class SettingsScreen extends StatelessWidget {
     final data = {
       'expenses': state.expenses.map((e) => e.toMap()).toList(),
       'receipts': state.receipts.map((r) => r.toMap()).toList(),
-      'shoppingList': state.shoppingList.map((item) => {
+      'shoppingList': state.shoppingListProducts.map((item) => {
         'name': item.name,
         'isChecked': item.isChecked,
         'options': item.options.map((opt) => opt.toMap()).toList(),
@@ -87,9 +88,13 @@ class SettingsScreen extends StatelessWidget {
 
     // Importa lista de compras, verificando duplicatas
     for (var item in data['shoppingList']) {
-      final newShoppingItem = ShoppingItem.fromMap(item);
-      if (!state.shoppingList.any((existing) => existing.name == newShoppingItem.name)) {
-        state.addShoppingItem(newShoppingItem);
+      final newShoppingItem = Product.fromMap(
+        item,
+        item.id,
+        ProductCategory.indefinida,
+      );
+      if (!state.shoppingListProducts.any((existing) => existing.name == newShoppingItem.name)) {
+        state.addProduct(newShoppingItem);
       }
     }
 
