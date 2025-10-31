@@ -34,8 +34,6 @@ class FinanceState with ChangeNotifier {
   List<ProductCategory> get productCategories => _productCategories;
   bool get isLoading => _isLoading;
 
-  // Mantém a lista estática de categorias de despesa (usada no add_transaction_screen)
-  // TODO: Migrar isto para o Firestore também pode ser um próximo passo
   final List<ExpenseCategory> _expenseCategories = [
     const ExpenseCategory(name: 'Compras', icon: Icons.shopping_cart),
     const ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
