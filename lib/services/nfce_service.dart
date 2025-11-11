@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:family_finances/models/nfce.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart'; // Para parsear a data
+// Para parsear a data
 import 'package:xml/xml.dart' as xml;
 import '../models/nfce_item_detail.dart'; // Importa a nova classe
 

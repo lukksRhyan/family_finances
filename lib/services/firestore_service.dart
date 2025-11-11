@@ -71,11 +71,11 @@ class FirestoreService {
     
     // Mapeia as categorias por ID
     Map<String, ProductCategory> categoryMap = {
-      for (var cat in categories) cat.id!: cat
+      for (var cat in categories) cat.id: cat
     };
     
     // Adiciona a categoria "indefinida" ao mapa para garantir que ela exista
-    categoryMap[ProductCategory.indefinida.id!] = ProductCategory.indefinida;
+    categoryMap[ProductCategory.indefinida.id] = ProductCategory.indefinida;
     
     return categoryMap;
   }

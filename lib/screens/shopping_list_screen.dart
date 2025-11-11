@@ -376,7 +376,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
               // Seleção de Categoria
               DropdownButtonFormField<ProductCategory>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 items: _availableCategories.map((cat) => DropdownMenuItem(
                   value: cat,
                   child: Row(children: [Icon(cat.icon, size: 20, color: Colors.grey[700]), const SizedBox(width: 8), Text(cat.name)]),

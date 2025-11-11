@@ -251,27 +251,21 @@ class _OverviewScreenState extends State<OverviewScreen> {
       print(data.totalValue.toString());
       print(data.taxInfo.toString());
       
-      if (data != null) {
-        final financeState = Provider.of<FinanceState>(context, listen: false);
-        financeState.addExpense( Expense(
-                        id: "0000",
-                        title: "Compras NFC-e nº ${data.nfceKey}",
-                        value: data.totalValue,
-                        category: ExpenseCategory(name: "Compras", icon: Icons.shopping_cart),
-                        note: data.items.map((item) => "${item.name} - Qty: ${item.quantity}, Unit Price: R\$ ${item.unitPrice.toStringAsFixed(2)}, Total: R\$ ${item.totalPrice.toStringAsFixed(2)}").join("\n"),
-                        date: DateTime.now(),
-                        isRecurrent: false,
-                        isInInstallments: false,
-        ));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Nota nº ${data.nfceKey} importada com sucesso! Valor Total: R\$ ${data.totalValue.toStringAsFixed(2)}')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível encontrar a chave de acesso no QR code.')),
-        );
-      }
-    }
+      final financeState = Provider.of<FinanceState>(context, listen: false);
+      financeState.addExpense( Expense(
+                      id: "0000",
+                      title: "Compras NFC-e nº ${data.nfceKey}",
+                      value: data.totalValue,
+                      category: ExpenseCategory(name: "Compras", icon: Icons.shopping_cart),
+                      note: data.items.map((item) => "${item.name} - Qty: ${item.quantity}, Unit Price: R\$ ${item.unitPrice.toStringAsFixed(2)}, Total: R\$ ${item.totalPrice.toStringAsFixed(2)}").join("\n"),
+                      date: DateTime.now(),
+                      isRecurrent: false,
+                      isInInstallments: false,
+      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Nota nº ${data.nfceKey} importada com sucesso! Valor Total: R\$ ${data.totalValue.toStringAsFixed(2)}')),
+      );
+        }
   },
 ),
         ],

@@ -207,7 +207,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   final value = double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0;
                   final note = _noteController.text;
                   final category = _selectedCategory;
-                  final financeState = Provider.of<FinanceState>(context, listen: false);
+                  final financeState = Provider.of<FinanceState>(context, listen: true);
 
                   if (_isExpense) {
                     if (_isInInstallments) {

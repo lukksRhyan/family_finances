@@ -252,10 +252,7 @@ class FinanceState with ChangeNotifier {
       }
 
       // 4. Cria uma única Despesa resumida para a compra total
-      final obs = "Importação NFC-e: ${nota.storeName}\n"
-                  "${nota.taxInfo}\n\n"
-                  "Itens:\n" +
-                  nota.items.map((e) => "- ${e.name.trim()} (${e.quantity}x ${e.unitPrice.toStringAsFixed(2)})").join("\n");
+      final obs = "Importação NFC-e: ${nota.storeName}\n${nota.taxInfo}\n\nItens:\n${nota.items.map((e) => "- ${e.name.trim()} (${e.quantity}x ${e.unitPrice.toStringAsFixed(2)})").join("\n")}";
 
       // Tenta encontrar a categoria "Compras", senão usa a primeira que encontrar
       final category = _expenseCategories.firstWhere(
