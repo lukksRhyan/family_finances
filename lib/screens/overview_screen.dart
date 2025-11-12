@@ -1,6 +1,8 @@
 import 'package:family_finances/models/expense_category.dart';
 import 'package:family_finances/models/nfce.dart';
 import 'package:family_finances/screens/qr_code_scanner_screen.dart';
+import 'package:family_finances/screens/transaction_detail_screen.dart';
+import 'package:family_finances/styles/app_colors.dart';
 import 'package:family_finances/styles/section_style.dart';
 import 'package:family_finances/services/nfce_service.dart';
 import 'package:family_finances/widgets/row_option.dart';
@@ -50,7 +52,18 @@ class _OverviewScreenState extends State<OverviewScreen> {
       });
     }
   }
-
+  void _openExpenseDetails(Expense expense){
+    showModalBottomSheet(context: context,
+     isScrollControlled: true,
+     builder: (_) => TransactionDetailScreen(expenseToShow: expense ),
+     );
+  }
+  void _openReceiptDetails(Receipt receipt){
+    showModalBottomSheet(context: context,
+     isScrollControlled: true,
+     builder: (_) =>  TransactionDetailScreen(receiptToShow: receipt),
+     );
+  }
   void _openAddTransactionScreen() {
     showModalBottomSheet(
       context: context,
@@ -140,6 +153,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
   @override
   Widget build(BuildContext context) {
     final financeState = Provider.of<FinanceState>(context);
+
+    if(financeState.isLoading){
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
 
     final filteredExpenses = financeState.expenses.where((e) {
       final expenseDate = e.date;
@@ -421,11 +443,17 @@ class _OverviewScreenState extends State<OverviewScreen> {
             ? 'A pagar em ${DateFormat('dd/MM/yyyy').format(expense.date)}'
             : DateFormat('dd/MM/yyyy').format(expense.date)),
         trailing: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('R\$ ${expense.value.toStringAsFixed(2)}',
                 style: TextStyle(color: expense.isFuture ? Colors.orange : Colors.red)),
-            IconButton(
+
+                    IconButton(
+              icon: const Icon(Icons.visibility, color: AppColors.primary),
+              onPressed: () => _openExpenseDetails(expense),
+            ),
+IconButton(
               icon: const Icon(Icons.edit, color: Colors.blue),
               onPressed: () => _openEditExpense(context, expense),
             ),
@@ -433,6 +461,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _confirmDeleteExpense(context, expense),
             ),
+
+            
           ],
         ),
       ),
