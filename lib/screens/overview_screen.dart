@@ -154,13 +154,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
   Widget build(BuildContext context) {
     final financeState = Provider.of<FinanceState>(context);
 
-    if(financeState.isLoading){
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
 
 
     final filteredExpenses = financeState.expenses.where((e) {

@@ -36,6 +36,44 @@ class ProductCategory {
       defaultPriority: map['defaultPriority'],
     );
   }
+  // Método para converter para Map (útil para Sqflite)
+  Map<String, dynamic> toMapForSqlite() {
+    return {
+      'id': id,
+      'name': name,
+      'iconCodePoint': icon.codePoint,
+      'iconFontFamily': icon.fontFamily,
+      'defaultPriority': defaultPriority,
+    };
+  }
+
+  // Método para converter de Map (útil para Sqflite)
+  factory ProductCategory.fromMapForSqlite(Map<String, dynamic> map) {
+    return ProductCategory(
+      id: map['id'] as String,
+      name: map['name'] as String,
+      icon: IconData(
+        map['iconCodePoint'] as int,
+        fontFamily: map['iconFontFamily'] as String?,
+      ),
+      defaultPriority: map['defaultPriority'] as int?,
+    );
+  }
+  ProductCategory copyWith({
+    String? id,
+    String? name,
+    IconData? icon,
+    int? defaultPriority,
+  }) {
+    return ProductCategory(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+      defaultPriority: defaultPriority ?? this.defaultPriority,
+    );
+  }
+
+
 
   // Definindo algumas categorias padrão como constantes estáticas
   static final ProductCategory indefinida = ProductCategory(id: 'undefined', name: 'Indefinida', icon: Icons.label_outline);

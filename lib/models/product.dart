@@ -3,7 +3,8 @@ import 'product_category.dart';
 import 'product_option.dart';
 
 class Product {
-  final String? id; // ID do documento no Firestore
+  final String? id;
+  int? localId; // ID do documento no Firestore
   final String name;
   final String nameLower; // Para buscas case-insensitive
   ProductCategory category; // Categoria do produto
@@ -13,6 +14,7 @@ class Product {
 
   Product({
     this.id,
+    this.localId,
     required this.name,
     required this.category,
     this.priority,
@@ -62,14 +64,86 @@ class Product {
     );
   }
 
+  // Método para converter para Map (útil para Sqflite)
+  Map<String, dynamic> toMapForSqlite() {
+    return {
+      'id': localId, // Usa o localId para o Sqflite
+      'name': name,
+      'nameLower': nameLower,
+      'categoryId': category.id,
+      'priority': priority,
+      'options': ProductOption.encode(options), // Converte a lista de opções para String JSON
+      'isChecked': isChecked ? 1 : 0, // SQLite não tem booleano, usa 0 ou 1
+    };
+  }
+
+  // Método para converter de Map (útil para Sqflite)
+  factory Product.fromMapForSqlite(Map<String, dynamic> map, ProductCategory category) {
+    return Product(
+      id: map['id']?.toString(), // O ID do Sqflite é int, mas o modelo usa String
+      localId: map['id'] as int?,
+      name: map['name'] as String,
+      category: category,
+      priority: map['priority'] as int?,
+      options: ProductOption.decode(map['options'] as String?), // Decodifica a String JSON para lista de opções
+      isChecked: (map['isChecked'] as int) == 1,
+    );
+  }
+  Map<String, dynamic> toMapForFirestore() {
+    return {
+      'name': name,
+      'nameLower': nameLower,
+      'categoryId': category.id, // Guarda APENAS o ID da categoria
+      'priority': priority,
+      // Itera na lista de opções e chama o .toMapForFirestore() de cada uma
+      'options': options.map((opt) => opt.toMapForFirestore()).toList(), 
+      'isChecked': isChecked,
+    };
+  }
+
+  factory Product.fromMapFromFirestore(Map<String, dynamic> map, String id, ProductCategory category) {
+     var optionsList = <ProductOption>[];
+    if (map['options'] is List) {
+      // Itera pela lista de mapas e chama o construtor da ProductOption
+      optionsList = (map['options'] as List)
+          .map((e) => ProductOption.fromMapFromFirestore(e as Map<String, dynamic>))
+          .toList();
+    }
+    
+    return Product(
+      id: id,
+      name: map['name'] ?? '',
+      category: category, // Usa o objeto Categoria que foi passado
+      priority: map['priority'],
+      options: optionsList..sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate)), // Ordena
+      isChecked: map['isChecked'] ?? false,
+    );
+  }
    // Método auxiliar para adicionar ou atualizar uma opção de compra
   void addOrUpdateOption(ProductOption newOption) {
-    // Lógica para verificar se uma opção similar já existe e atualizar,
-    // ou apenas adicionar a nova. Pode comparar por loja e data, por exemplo.
-    // Exemplo simples: sempre adiciona
+
     options.add(newOption);
     // Ordena as opções pela data da compra mais recente
     options.sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
   }
+  Product copyWith({
+    String? id,
+    String? name,
+    ProductCategory? category,
+    int? priority,
+    List<ProductOption>? options,
+    bool? isChecked,
+    int? localId,
+  }) {
+    return Product(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      priority: priority ?? this.priority,
+      options: options ?? this.options,
+      isChecked: isChecked ?? this.isChecked,
+    );
+  }
+
 }
  
