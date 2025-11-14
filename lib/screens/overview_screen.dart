@@ -154,8 +154,6 @@ class _OverviewScreenState extends State<OverviewScreen> {
   Widget build(BuildContext context) {
     final financeState = Provider.of<FinanceState>(context);
 
-
-
     final filteredExpenses = financeState.expenses.where((e) {
       final expenseDate = e.date;
       final inclusiveEndDate =

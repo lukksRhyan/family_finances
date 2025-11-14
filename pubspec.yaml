@@ -33,6 +33,7 @@ dependencies:
   sqflite: ^2.4.2
   sqflite_common_ffi: ^2.3.2+1 
   fl_chart: ^0.63.0
+  google_sign_in: ^7.2.0
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -59,5 +60,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
+  assets:
+    - assets/google_logo.png
   uses-material-design: true

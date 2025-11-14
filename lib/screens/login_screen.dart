@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 import '../models/finance_state.dart';
 import 'main_screen.dart';
@@ -17,6 +18,29 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _errorMessage;
   bool _isLoading = false; // Estado de loading para a sincronização
+
+  @override
+  void initState() {
+    super.initState();
+
+    final GoogleSignIn signIn = GoogleSignIn.instance;
+
+    signIn.initialize(
+      clientId: null,
+      serverClientId: null
+    ).then((_){
+        signIn.authenticationEvents.listen((event) async{
+            if(event case GoogleSignInAuthenticationEventSignIn(: final user)){
+              final auth = await user.authentication;
+              final credential = GoogleAuthProvider.credential(
+                idToken: auth.idToken,
+              );
+              await FirebaseAuth.instance.signInWithCredential(credential);
+            }
+        });
+    });
+  }
+
 
   // Função de sincronização
   Future<void> _syncLocalData(String newUid) async {
@@ -121,6 +145,26 @@ class _LoginScreenState extends State<LoginScreen> {
        }
     }
   }
+  Future<void> _signInWithGoogle() async {
+  final signIn = GoogleSignIn.instance;
+
+  if (!signIn.supportsAuthenticate()) {
+    // Caso esteja em plataforma que cai em Web
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Este dispositivo não suporta login Google nativo.")),
+    );
+    return;
+  }
+
+  try {
+    await signIn.authenticate();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Erro ao autenticar com Google: $e")),
+    );
+  }
+}
+
 
   void _continueAsGuest() {
     if (_isLoading) return;
@@ -205,7 +249,27 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(color: Colors.grey, decoration: TextDecoration.underline),
                     ),
                   ),
-                ]
+                ],
+                const SizedBox(height: 16),
+                SizedBox(height: 20),
+ElevatedButton.icon(
+  icon: Image.asset(
+    'assets/google_logo.png',
+    height: 24,
+  ),
+  label: const Text("Continuar com Google"),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.white,
+    foregroundColor: Colors.black87,
+    minimumSize: const Size(double.infinity, 50),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(8),
+      side: const BorderSide(color: Colors.grey),
+    ),
+  ),
+  onPressed: _signInWithGoogle,
+),
+
               ],
             ),
           ),

@@ -1,11 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-import 'dart:convert'; // Para codificar/decodificar a lista de opções
+// Para codificar/decodificar a lista de opções
 import '../models/expense.dart';
 import '../models/receipt.dart';
 import '../models/product.dart';
 import '../models/product_category.dart';
-import '../models/product_option.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();

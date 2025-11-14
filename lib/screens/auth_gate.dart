@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Importa o Provider
-import '../models/finance_state.dart'; // Importa o FinanceState
+// Importa o Provider
+// Importa o FinanceState
 import 'login_screen.dart';
 import 'main_screen.dart';
 
