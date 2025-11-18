@@ -16,6 +16,7 @@ class Expense {
   final int? recurrentIntervalDays;
   final bool isInInstallments;
   final int? installmentCount;
+  final bool isShared; // NOVO: Flag para transação conjunta/compartilhada
 
   Expense({
     this.id,
@@ -31,6 +32,7 @@ class Expense {
     this.recurrentIntervalDays,
     required this.isInInstallments,
     this.installmentCount,
+    this.isShared = false, // Padrão é falso
   });
 
   bool get isFuture => date.isAfter(DateTime.now());
@@ -57,6 +59,7 @@ class Expense {
       recurrentIntervalDays: map['recurrent_interval_days'],
       isInInstallments: map['is_in_installments'] ?? false,
       installmentCount: map['installment_count'],
+      isShared: map['isShared'] ?? false, // NOVO
     );
   }
 
@@ -75,6 +78,7 @@ class Expense {
       'recurrent_interval_days': recurrentIntervalDays,
       'is_in_installments': isInInstallments,
       'installment_count': installmentCount,
+      'isShared': isShared, // NOVO
     };
   }
   // Método para converter para Map (útil para Sqflite)
@@ -93,6 +97,7 @@ class Expense {
       'recurrentIntervalDays': recurrentIntervalDays,
       'isInInstallments': isInInstallments ? 1 : 0,
       'installmentCount': installmentCount,
+      // isShared não é relevante para o DB local/privado
     };
   }
 
@@ -118,6 +123,7 @@ class Expense {
       recurrentIntervalDays: map['recurrentIntervalDays'] as int?,
       isInInstallments: (map['isInInstallments'] as int) == 1,
       installmentCount: map['installmentCount'] as int?,
+      isShared: false, // Força falso no modo local
     );
   }
   Map<String, dynamic> toMapForFirestore() {
@@ -135,6 +141,7 @@ class Expense {
       'recurrentIntervalDays': recurrentIntervalDays,
       'isInInstallments': isInInstallments,
       'installmentCount': installmentCount,
+      'isShared': isShared, // NOVO
     };
   }
 
@@ -158,6 +165,7 @@ class Expense {
       recurrentIntervalDays: map['recurrentIntervalDays'],
       isInInstallments: map['isInInstallments'] ?? false,
       installmentCount: map['installmentCount'],
+      isShared: map['isShared'] ?? false, // NOVO
     );
   }
   Expense copyWith({
@@ -174,6 +182,7 @@ class Expense {
     int? recurrentIntervalDays,
     bool? isInInstallments,
     int? installmentCount,
+    bool? isShared, // NOVO
   }) {
     return Expense(
       id: id ?? this.id,
@@ -189,7 +198,8 @@ class Expense {
       recurrentIntervalDays: recurrentIntervalDays ?? this.recurrentIntervalDays,
       isInInstallments: isInInstallments ?? this.isInInstallments,
       installmentCount: installmentCount ?? this.installmentCount,
+      isShared: isShared ?? this.isShared, // NOVO
     );
   }
 
-}
+} 

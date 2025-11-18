@@ -13,10 +13,11 @@ class ProductCategory {
     this.defaultPriority,
   });
 
-  // Método para converter para Map (útil para Firestore)
-  Map<String, dynamic> toMap() {
+  // --- CONVERSORES DO FIRESTORE (MÉTODOS NOVOS) ---
+
+  /// Converte este objeto para um Map para o Firestore (sem ID, pois é a chave do doc)
+  Map<String, dynamic> toMapForFirestore() {
     return {
-      'id': id,
       'name': name,
       'iconCodePoint': icon.codePoint,
       'iconFontFamily': icon.fontFamily,
@@ -24,10 +25,10 @@ class ProductCategory {
     };
   }
 
-  // Método para converter de Map (útil para Firestore)
-  factory ProductCategory.fromMap(Map<String, dynamic> map) {
+  /// Converte de um Documento do Firestore para um objeto ProductCategory
+  factory ProductCategory.fromMapFromFirestore(Map<String, dynamic> map, String id) {
     return ProductCategory(
-      id: map['id'] ?? '',
+      id: id, // Recebe o ID do documento separadamente
       name: map['name'] ?? 'Desconhecida',
       icon: IconData(
         map['iconCodePoint'] ?? Icons.label_outline.codePoint,
@@ -36,10 +37,12 @@ class ProductCategory {
       defaultPriority: map['defaultPriority'],
     );
   }
-  // Método para converter para Map (útil para Sqflite)
+
+  // --- Conversores do Sqflite (Mantidos) ---
+
   Map<String, dynamic> toMapForSqlite() {
     return {
-      'id': id,
+      'id': id, // No SQLite, o ID faz parte do mapa
       'name': name,
       'iconCodePoint': icon.codePoint,
       'iconFontFamily': icon.fontFamily,
@@ -47,7 +50,6 @@ class ProductCategory {
     };
   }
 
-  // Método para converter de Map (útil para Sqflite)
   factory ProductCategory.fromMapForSqlite(Map<String, dynamic> map) {
     return ProductCategory(
       id: map['id'] as String,
@@ -59,6 +61,9 @@ class ProductCategory {
       defaultPriority: map['defaultPriority'] as int?,
     );
   }
+
+  // --- Métodos Auxiliares ---
+
   ProductCategory copyWith({
     String? id,
     String? name,
@@ -73,22 +78,32 @@ class ProductCategory {
     );
   }
 
+  static final ProductCategory indefinida = ProductCategory(id: 'undefined', name: 'Indefinida', icon: Icons.label_outline, defaultPriority: 3);
+  static final ProductCategory alimentacao = ProductCategory(id: 'food', name: 'Alimentação', icon: Icons.fastfood, defaultPriority: 1);
+  static final ProductCategory casa = ProductCategory(id: 'home', name: 'Casa', icon: Icons.home, defaultPriority: 2);
 
-
-  // Definindo algumas categorias padrão como constantes estáticas
-  static final ProductCategory indefinida = ProductCategory(id: 'undefined', name: 'Indefinida', icon: Icons.label_outline);
-  static final ProductCategory alimentacao = ProductCategory(id: 'food', name: 'Alimentação', icon: Icons.fastfood);
-  static final ProductCategory casa = ProductCategory(id: 'home', name: 'Casa', icon: Icons.home);
-  // Adicione outras categorias conforme necessário...
-
-  // Método para buscar uma categoria padrão pelo nome (útil na importação)
   static ProductCategory getByName(String name) {
-    // Implementar lógica para buscar em uma lista de categorias pré-definidas
-    // Exemplo simplificado:
     if (name.toLowerCase().contains('comida') || name.toLowerCase().contains('alim')) {
       return alimentacao;
     }
-    // ... outras lógicas ...
-    return indefinida; // Retorna indefinida se não encontrar
+    return indefinida;
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ProductCategory && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
+  
+  @override
+  String toString() {
+    return 'ProductCategory{id: $id, name: $name}';
+  }
+
+  static fromMap(Map<String, dynamic> data) {}
+
+  Object? toMap() {}
 }

@@ -11,6 +11,7 @@ class Receipt {
   final bool isRecurrent;
   final int? recurrencyId;
   final ReceiptCategory category;
+  final bool isShared; // NOVO: Flag para transação conjunta/compartilhada
 
   Receipt({
     this.id,
@@ -21,6 +22,7 @@ class Receipt {
     required this.isRecurrent,
     this.recurrencyId,
     required this.category,
+    this.isShared = false, // Padrão é falso
   });
 
   bool get isFuture => date.isAfter(DateTime.now());
@@ -40,6 +42,7 @@ class Receipt {
           fontFamily: 'MaterialIcons',
         ),
       ),
+      isShared: map['isShared'] ?? false, // NOVO
     );
   }
 
@@ -52,6 +55,7 @@ class Receipt {
       'category_icon': category.icon.codePoint,
       'is_recurrent': isRecurrent,
       'recurrency_id': recurrencyId,
+      'isShared': isShared, // NOVO
     };
   }
 
@@ -66,6 +70,7 @@ class Receipt {
       'category_icon': category.icon.codePoint,
       'isRecurrent': isRecurrent ? 1 : 0, // SQLite não tem booleano, usa 0 ou 1
       'recurrencyId': recurrencyId,
+       // isShared não é relevante para o DB local/privado
     };
   }
 
@@ -86,6 +91,7 @@ class Receipt {
           fontFamily: 'MaterialIcons',
         ),
       ),
+      isShared: false, // Força falso no modo local
     );
   }
 
@@ -98,7 +104,8 @@ class Receipt {
       'category_name': category.name,
       'category_icon': category.icon.codePoint,
       'isRecurrent': isRecurrent,
-      'recurrencyId': recurrencyId,
+      'recurrency_id': recurrencyId,
+      'isShared': isShared, // NOVO
     };
   }
   factory Receipt.fromMapFromFirestore(Map<String, dynamic> map, String id) {
@@ -116,6 +123,7 @@ class Receipt {
           fontFamily: 'MaterialIcons',
         ),
       ),
+      isShared: map['isShared'] ?? false, // NOVO
     );
   }
   Receipt copyWith({
@@ -127,6 +135,7 @@ class Receipt {
     bool? isRecurrent,
     int? recurrencyId,
     ReceiptCategory? category,
+    bool? isShared, // NOVO
   }) {
     return Receipt(
       id: id ?? this.id,
@@ -137,6 +146,7 @@ class Receipt {
       isRecurrent: isRecurrent ?? this.isRecurrent,
       recurrencyId: recurrencyId ?? this.recurrencyId,
       category: category ?? this.category,
+      isShared: isShared ?? this.isShared, // NOVO
     );
   }
 

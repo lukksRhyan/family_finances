@@ -27,7 +27,7 @@ class OverviewScreen extends StatefulWidget {
 class _OverviewScreenState extends State<OverviewScreen> {
   late DateTime _startDate;
   late DateTime _endDate;
-
+  final bool _debug = true;
   @override
   void initState() {
     super.initState();
@@ -150,6 +150,14 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
+  void _showUserData(FinanceState state){
+    print(state.expenses.toString());
+    print(state.receipts);
+    print(state.shoppingListProducts);
+    print(state.productCategories);
+    print(state.expenseCategories);
+  }
+
   @override
   Widget build(BuildContext context) {
     final financeState = Provider.of<FinanceState>(context);
@@ -195,6 +203,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
           children: [
             const SizedBox(height: 16),
             _buildButtomsRow(context),
+            const SizedBox(height: 16),
+            IconButton(onPressed: () => _showUserData(financeState), icon: const Icon(Icons.info_outline)),
             const SizedBox(height: 16),
             Text(
               'Saldo no período: R\$ ${(totalReceitasAtuais - totalDespesasAtuais).toStringAsFixed(2)}',

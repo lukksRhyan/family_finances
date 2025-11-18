@@ -32,6 +32,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime _selectedDate = DateTime.now();
   bool _isExpense = true;
   bool _validateValue() => double.tryParse(_valueController.text.replaceAll(',', '.')) != null;
+  bool _isShared = false; // NOVO: Estado para transação compartilhada
 
   bool _isRecurrent = false;
   RecurrencyType? _selectedRecurrencyType;
@@ -39,14 +40,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   int _selectedDayOfWeek = DateTime.now().weekday;
 
   final List<ExpenseCategory> _categories = [
-    ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
-    ExpenseCategory(name: 'Moradia', icon: Icons.home),
-    ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
-    ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
-    ExpenseCategory(name: 'Compras', icon: Icons.shopping_cart),
-    ExpenseCategory(name: 'Saúde', icon: Icons.local_hospital),
-    ExpenseCategory(name: 'Educação', icon: Icons.school),
-    ExpenseCategory(name: 'Outros', icon: Icons.category),
+    const ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
+    const ExpenseCategory(name: 'Moradia', icon: Icons.home),
+    const ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
+    const ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
+    const ExpenseCategory(name: 'Compras', icon: Icons.shopping_cart),
+    const ExpenseCategory(name: 'Saúde', icon: Icons.local_hospital),
+    const ExpenseCategory(name: 'Educação', icon: Icons.school),
+    const ExpenseCategory(name: 'Outros', icon: Icons.category),
   ];
 
   ExpenseCategory? _selectedCategory;
@@ -59,7 +60,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     _recurrentIntervalController.addListener(() {
       setState(() {});
     });
-
+    
+    // Inicializa com base na transação a ser editada
     if (widget.expenseToEdit != null) {
       _titleController.text = widget.expenseToEdit!.title;
       _valueController.text = widget.expenseToEdit!.value.toString();
@@ -69,10 +71,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _selectedCategory = widget.expenseToEdit!.category;
       _isRecurrent = widget.expenseToEdit!.isRecurrent;
       _isInInstallments = widget.expenseToEdit!.isInInstallments;
+      _isShared = widget.expenseToEdit!.isShared; // NOVO
 
       if (_isRecurrent) {
         _selectedRecurrencyType = RecurrencyType.values[widget.expenseToEdit!.recurrencyType!];
-        if (_selectedRecurrencyType == RecurrencyType.custom) {
+        if (widget.expenseToEdit!.recurrentIntervalDays != null) {
           _recurrentIntervalController.text = widget.expenseToEdit!.recurrentIntervalDays.toString();
         } else if (_selectedRecurrencyType == RecurrencyType.monthly) {
           _selectedDayOfMonth = widget.expenseToEdit!.date.day;
@@ -80,7 +83,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           _selectedDayOfWeek = widget.expenseToEdit!.date.weekday;
         }
       }
-      if (_isInInstallments) {
+      if (widget.expenseToEdit!.installmentCount != null) {
         _installmentCountController.text = widget.expenseToEdit!.installmentCount.toString();
         _updateInstallmentValue();
       }
@@ -89,6 +92,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _valueController.text = widget.receiptToEdit!.value.toString();
       _selectedDate = widget.receiptToEdit!.date;
       _isExpense = false;
+      _isShared = widget.receiptToEdit!.isShared; // NOVO
     }
   }
 
@@ -116,6 +120,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   void _addCategory(ExpenseCategory category) {
     setState(() {
+      // Adicionar categoria ao estado global se necessário
       _categories.add(category);
       _selectedCategory = category;
     });
@@ -124,6 +129,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Color(0xFF2A8782);
+    final financeState = Provider.of<FinanceState>(context);
+    final bool hasPartnership = financeState.currentPartnerId != null;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -159,11 +166,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+             // NOVO: Switch para Transação Compartilhada
+            if (financeState.isLoggedIn && hasPartnership)
+              _buildSharedToggle(context),
+            const SizedBox(height: 8),
+            
             _buildTextField(label: 'Título', hint: _isExpense ? 'Título da despesa' : 'Título do ganho', controller: _titleController),
             const SizedBox(height: 16),
             _buildTextField(label: 'Valor', hint: '0,00', controller: _valueController),
             const SizedBox(height: 16),
+            
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -210,28 +223,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   final financeState = Provider.of<FinanceState>(context, listen: false);
 
                   if (_isExpense) {
-                    if (_isInInstallments) {
-                      // O código para parcelamento é o mesmo
-                    } else if (_isRecurrent) {
-                      // O código para recorrência é o mesmo
+                    // Lógica para despesa (privada ou compartilhada)
+                    final newOrUpdatedExpense = Expense(
+                      id: widget.expenseToEdit?.id,
+                      title: title,
+                      value: value,
+                      category: category!,
+                      note: note,
+                      date: _selectedDate,
+                      isRecurrent: _isRecurrent,
+                      isInInstallments: _isInInstallments,
+                      isShared: _isShared, // NOVO
+                    );
+                    
+                    if (widget.expenseToEdit == null) {
+                        financeState.addExpense(newOrUpdatedExpense);
                     } else {
-                      final newOrUpdatedExpense = Expense(
-                        id: widget.expenseToEdit?.id,
-                        title: title,
-                        value: value,
-                        category: category!,
-                        note: note,
-                        date: _selectedDate,
-                        isRecurrent: false,
-                        isInInstallments: false,
-                      );
-                      if (widget.expenseToEdit == null) {
-                          financeState.addExpense(newOrUpdatedExpense);
-                      } else {
-                        financeState.updateExpense(newOrUpdatedExpense);
-                      }
+                      financeState.updateExpense(newOrUpdatedExpense);
                     }
                   } else {
+                    // Lógica para receita (privada ou compartilhada)
                     final newOrUpdatedReceipt = Receipt(
                       id: widget.receiptToEdit?.id,
                       title: title,
@@ -239,6 +250,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       date: _selectedDate,
                       isRecurrent: _isRecurrent,
                       category: ReceiptCategory(name: 'Outros', icon: Icons.category),
+                      isShared: _isShared, // NOVO
                     );
                     if (widget.receiptToEdit == null) {
                         financeState.addReceipt(newOrUpdatedReceipt);
@@ -265,6 +277,56 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const SizedBox(height: 16),
           ],
         ),
+      ),
+    );
+  }
+  
+  // NOVO: Widget para o toggle de transação compartilhada
+  Widget _buildSharedToggle(BuildContext context) {
+    final financeState = Provider.of<FinanceState>(context, listen: false);
+    final partnerId = financeState.currentPartnerId;
+    
+    // Verifica se a transação está sendo editada e se é compartilhada.
+    // Se estiver editando e for compartilhada, o switch deve ser desabilitado
+    // para que o usuário não mude o status de uma transação que já existe
+    // em uma coleção específica (shared ou private).
+    final bool isEditingShared = 
+        (widget.expenseToEdit?.isShared ?? false) || 
+        (widget.receiptToEdit?.isShared ?? false);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Transação Conjunta',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                Text(
+                  isEditingShared
+                      ? 'Status fixo. A transação já está na conta conjunta.'
+                      : 'Salva para você e seu parceiro (${partnerId!.length > 8 ? '${partnerId.substring(0, 8)}...' : partnerId})',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isShared,
+            // Desabilita o switch se estiver editando uma transação compartilhada
+            onChanged: isEditingShared ? null : (value) { 
+              setState(() {
+                _isShared = value;
+              });
+            },
+            activeColor: Colors.indigo,
+          ),
+        ],
       ),
     );
   }

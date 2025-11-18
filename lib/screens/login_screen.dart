@@ -25,6 +25,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final GoogleSignIn signIn = GoogleSignIn.instance;
 
+    // Inicialização do Google Sign In.
+    // O listener abaixo lida com a autenticação e o Firebase AuthStateChanges no FinanceState
+    // se encarrega de carregar/sincronizar os dados após o login bem-sucedido.
     signIn.initialize(
       clientId: null,
       serverClientId: null
@@ -35,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
               final credential = GoogleAuthProvider.credential(
                 idToken: auth.idToken,
               );
+              // Faz o login no Firebase. Isso dispara o listener do FinanceState.
               await FirebaseAuth.instance.signInWithCredential(credential);
             }
         });
@@ -42,7 +46,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
 
-  // Função de sincronização
+  // Função de sincronização (mantida, mas agora só é chamada se o login falhar
+  // e o usuário precisar de uma retentativa de sync, embora a chamada principal
+  // venha do FinanceState).
   Future<void> _syncLocalData(String newUid) async {
     final financeState = Provider.of<FinanceState>(context, listen: false);
     
@@ -60,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      await financeState.syncLocalDataToFirebase(newUid);
+      // Chamada real da sincronização
       // O AuthGate tratará da navegação após o estado de auth mudar
     } catch (e) {
       // VERIFICAÇÃO "MOUNTED"
@@ -80,7 +86,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate() || _isLoading) return;
     try {
-      // VERIFICAÇÃO "MOUNTED"
       if (mounted) {
         setState(() {
            _isLoading = true;
@@ -88,22 +93,17 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
       
-      // 1. Faz o login
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // 1. Faz o login no Firebase. 
+      // O listener de auth no FinanceState cuidará da sincronização e navegação
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
 
-      // 2. Se o login for bem-sucedido e houver um utilizador, sincroniza os dados
-      if (userCredential.user != null) {
-        // O AuthGate irá tratar da navegação.
-        // A sincronização será chamada pelo 'listen' do AuthState
-        // Vamos chamar o sync aqui para garantir, mas a navegação já vai acontecer.
-        await _syncLocalData(userCredential.user!.uid);
-      }
+      // 2. Não precisamos mais da lógica de sincronização aqui.
+      // O FinanceState agora ouve a mudança de estado de autenticação e inicia a sincronização automaticamente.
 
     } on FirebaseAuthException catch (e) {
-      // VERIFICAÇÃO "MOUNTED"
       if(mounted){
         setState(() {
           _isLoading = false;
@@ -116,7 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate() || _isLoading) return;
     try {
-      // VERIFICAÇÃO "MOUNTED"
       if (mounted) {
         setState(() {
            _isLoading = true;
@@ -124,19 +123,17 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
 
-      // 1. Cria o utilizador
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      // 1. Cria o utilizador no Firebase.
+      // O listener de auth no FinanceState cuidará da sincronização e navegação
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text,
         password: _passwordController.text,
       );
       
-      // 2. Se o registo for bem-sucedido, sincroniza os dados locais
-       if (userCredential.user != null) {
-        await _syncLocalData(userCredential.user!.uid);
-      }
+      // 2. Não precisamos mais da lógica de sincronização aqui.
+      // O FinanceState agora ouve a mudança de estado de autenticação e inicia a sincronização automaticamente.
 
     } on FirebaseAuthException catch (e) {
-       // VERIFICAÇÃO "MOUNTED"
        if(mounted){
           setState(() {
             _isLoading = false;
@@ -145,31 +142,32 @@ class _LoginScreenState extends State<LoginScreen> {
        }
     }
   }
+  
   Future<void> _signInWithGoogle() async {
-  final signIn = GoogleSignIn.instance;
+    final signIn = GoogleSignIn.instance;
 
-  if (!signIn.supportsAuthenticate()) {
-    // Caso esteja em plataforma que cai em Web
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Este dispositivo não suporta login Google nativo.")),
-    );
-    return;
-  }
+    if (!signIn.supportsAuthenticate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Este dispositivo não suporta login Google nativo.")),
+      );
+      return;
+    }
 
-  try {
-    await signIn.authenticate();
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Erro ao autenticar com Google: $e")),
-    );
+    try {
+      // A chamada a authenticate() vai disparar o listener no initState
+      await signIn.authenticate(); 
+      // O listener de auth no FinanceState cuidará da sincronização e navegação.
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao autenticar com Google: $e")),
+      );
+    }
   }
-}
 
 
   void _continueAsGuest() {
     if (_isLoading) return;
     // Simplesmente navega para o MainScreen.
-    // O FinanceState verá que o utilizador é nulo e carregará os dados locais.
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (context) => const MainScreen()),
     );
