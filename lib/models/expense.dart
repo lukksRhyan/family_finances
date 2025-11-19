@@ -45,13 +45,7 @@ class Expense {
       localId: null,
       title: map['title'] ?? '',
       value: (map['value'] is num) ? (map['value'] as num).toDouble() : 0.0,
-      category: ExpenseCategory(
-        name: map['category_name'] ?? 'Outros',
-        icon: IconData(
-          (map['category_icon'] is int) ? map['category_icon'] as int : Icons.category.codePoint,
-          fontFamily: 'MaterialIcons',
-        ),
-      ),
+      category:ExpenseCategory.fromMapFromFirestore(map['category']),
       note: map['note'] ?? '',
       date: (map['date'] is Timestamp)
           ? (map['date'] as Timestamp).toDate()
@@ -71,8 +65,7 @@ class Expense {
     return {
       'title': title,
       'value': value,
-      'category_name': category.name,
-      'category_icon': category.icon.codePoint,
+      'category':category.toMapForFirestore(),
       'note': note,
       'date': Timestamp.fromDate(date),
       'is_recurrent': isRecurrent,
@@ -92,9 +85,7 @@ class Expense {
       'id': id,
       'title': title,
       'value': value,
-      'categoryId': null, // se tiver category.id, coloque aqui; manter null se não houver
-      'categoryName': category.name,
-      'categoryIcon': category.icon.codePoint,
+      'category':category.toMapForSqlite(),
       'note': note,
       'date': date.toIso8601String(),
       'isRecurrent': isRecurrent ? 1 : 0,
@@ -110,7 +101,6 @@ class Expense {
 
   /// Constrói a partir de um row do SQLite (Map resultante do db.query)
   factory Expense.fromMapForSqlite(Map<String, dynamic> map) {
-    // map provavel: {'localId': 1, 'id': 'fireId', 'title': ..., 'date': '2023-...'}
     final localId = map['localId'] is int
         ? map['localId'] as int
         : (map['localId'] != null ? int.tryParse(map['localId'].toString()) : null);
@@ -120,13 +110,7 @@ class Expense {
       localId: localId,
       title: map['title']?.toString() ?? '',
       value: (map['value'] is num) ? (map['value'] as num).toDouble() : double.tryParse(map['value']?.toString() ?? '') ?? 0.0,
-      category: ExpenseCategory(
-        name: map['categoryName']?.toString() ?? 'Outros',
-        icon: IconData(
-          (map['categoryIcon'] is int) ? map['categoryIcon'] as int : Icons.category.codePoint,
-          fontFamily: 'MaterialIcons',
-        ),
-      ),
+      category: ExpenseCategory.fromMapForSqlite(map['category']),
       note: map['note']?.toString() ?? '',
       date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
       isRecurrent: (map['isRecurrent'] ?? 0) == 1,

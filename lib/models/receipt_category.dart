@@ -26,4 +26,39 @@ class ReceiptCategory {
 
   @override
   int get hashCode => Object.hash(name, icon);
+
+  static ReceiptCategory fromMapFromFirestore(Map<String, dynamic> map) {
+    return ReceiptCategory(
+      name: map['name'] ?? 'Desconhecida',
+      icon: IconData(
+        map['icon'] ?? Icons.label_outline.codePoint,
+        fontFamily: Icons.label_outline.fontFamily,
+      ),
+    );
+  }
+
+  Map<String, dynamic> toMapForFirestore() {
+    return {
+      'name': name,
+      'icon': icon.codePoint,
+    };
+  }
+
+  Map<String, dynamic> toMapForSqlite() {
+    return {
+      'name': name,
+      'icon': icon.codePoint,
+    };
+  }
+
+  static ReceiptCategory fromMapForSqlite(Map<String, dynamic> map) {
+    return ReceiptCategory(
+      name: map['name'] ?? 'Desconhecida',
+      icon: IconData(
+        map['icon'] ?? Icons.label_outline.codePoint,
+        fontFamily: Icons.label_outline.fontFamily,
+      ),
+    );
+  }
+  
 }

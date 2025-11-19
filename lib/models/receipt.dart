@@ -1,7 +1,5 @@
 // lib/models/receipt.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'receipt_category.dart';
 
 class Receipt {
@@ -67,8 +65,7 @@ class Receipt {
       'recurrencyType': recurrencyType,
       'isShared': isShared,
       'sharedFromUid': sharedFromUid,
-      'categoryId': category.id,
-      'categoryName': category.name,
+      'category': category.toMapForFirestore(),
     };
   }
 
@@ -82,8 +79,7 @@ class Receipt {
       'recurrencyType': recurrencyType,
       'isShared': isShared ? 1 : 0,
       'sharedFromUid': sharedFromUid,
-      'categoryId': category.id,
-      'categoryName': category.name,
+      'category': category.toMapForSqlite(),
     };
   }
 
@@ -105,11 +101,7 @@ class Receipt {
       recurrencyType: map['recurrencyType'] as int?,
       isShared: map['isShared'] ?? false,
       sharedFromUid: map['sharedFromUid']?.toString(),
-      category: ReceiptCategory(
-        name: map['categoryName'] ?? 'Outros',
-        icon: Icons.attach_money,
-        id: map['categoryId']?.toString() ?? 'outros',
-      ),
+      category: ReceiptCategory.fromMapFromFirestore(map['category']),
     );
   }
 
@@ -128,11 +120,7 @@ class Receipt {
       recurrencyType: map['recurrencyType'] is int ? map['recurrencyType'] as int : (map['recurrencyType'] != null ? int.tryParse(map['recurrencyType'].toString()) : null),
       isShared: (map['isShared'] ?? 0) == 1,
       sharedFromUid: map['sharedFromUid']?.toString(),
-      category: ReceiptCategory(
-        name: map['categoryName'] ?? 'Outros',
-        icon: Icons.attach_money,
-        id: map['categoryId']?.toString() ?? 'outros',
-      ),
+      category: ReceiptCategory.fromMapForSqlite(map['category']),
     );
   }
 }
