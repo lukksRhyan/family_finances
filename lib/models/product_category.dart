@@ -1,3 +1,4 @@
+//lib/models/product_cetegory.dart
 import 'package:flutter/material.dart';
 
 class ProductCategory {

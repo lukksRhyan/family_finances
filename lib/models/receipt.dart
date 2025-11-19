@@ -1,5 +1,7 @@
+// lib/models/receipt.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'receipt_category.dart';
 
 class Receipt {
@@ -9,9 +11,10 @@ class Receipt {
   final double value;
   final DateTime date;
   final bool isRecurrent;
-  final int? recurrencyId;
+  final int? recurrencyType;
+  final bool isShared;
+  final String? sharedFromUid;
   final ReceiptCategory category;
-  final bool isShared; // NOVO: Flag para transação conjunta/compartilhada
 
   Receipt({
     this.id,
@@ -19,113 +22,15 @@ class Receipt {
     required this.title,
     required this.value,
     required this.date,
-    required this.isRecurrent,
-    this.recurrencyId,
+    this.isRecurrent = false,
+    this.recurrencyType,
+    this.isShared = false,
+    this.sharedFromUid,
     required this.category,
-    this.isShared = false, // Padrão é falso
   });
 
   bool get isFuture => date.isAfter(DateTime.now());
 
-  factory Receipt.fromMap(Map<String, dynamic> map, {String? id}) {
-    return Receipt(
-      id: id,
-      title: map['title'],
-      value: (map['value'] as num).toDouble(),
-      date: (map['date'] as Timestamp).toDate(),
-      isRecurrent: map['is_recurrent'] ?? false,
-      recurrencyId: map['recurrency_id'],
-      category: ReceiptCategory(
-        name: map['category_name'] ?? 'Outros',
-        icon: IconData(
-          map['category_icon'] ?? 0xe360,
-          fontFamily: 'MaterialIcons',
-        ),
-      ),
-      isShared: map['isShared'] ?? false, // NOVO
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'title': title,
-      'value': value,
-      'date': Timestamp.fromDate(date),
-      'category_name': category.name,
-      'category_icon': category.icon.codePoint,
-      'is_recurrent': isRecurrent,
-      'recurrency_id': recurrencyId,
-      'isShared': isShared, // NOVO
-    };
-  }
-
-  // Método para converter para Map (útil para Sqflite)
-  Map<String, dynamic> toMapForSqlite() {
-    return {
-      'id': localId, // Usa o localId para o Sqflite
-      'title': title,
-      'value': value,
-      'date': date.toIso8601String(), // Armazena DateTime como String ISO
-      'category_name': category.name,
-      'category_icon': category.icon.codePoint,
-      'isRecurrent': isRecurrent ? 1 : 0, // SQLite não tem booleano, usa 0 ou 1
-      'recurrencyId': recurrencyId,
-       // isShared não é relevante para o DB local/privado
-    };
-  }
-
-  // Método para converter de Map (útil para Sqflite)
-  factory Receipt.fromMapForSqlite(Map<String, dynamic> map) {
-    return Receipt(
-      id: map['id']?.toString(), // O ID do Sqflite é int, mas o modelo usa String
-      localId: map['id'] as int?,
-      title: map['title'] as String,
-      value: map['value'] as double,
-      date: DateTime.parse(map['date'] as String), // Converte String ISO para DateTime
-      isRecurrent: (map['isRecurrent'] as int) == 1,
-      recurrencyId: map['recurrencyId'] as int?,
-      category: ReceiptCategory(
-        name: map['category_name'] as String,
-        icon: IconData(
-          map['category_icon'] as int,
-          fontFamily: 'MaterialIcons',
-        ),
-      ),
-      isShared: false, // Força falso no modo local
-    );
-  }
-
-  Map<String, dynamic> toMapForFirestore() {
-    return {
-      // O 'id' não é guardado aqui, ele é a chave do documento
-      'title': title,
-      'value': value,
-      'date': Timestamp.fromDate(date), // Converte DateTime para Timestamp
-      'category_name': category.name,
-      'category_icon': category.icon.codePoint,
-      'isRecurrent': isRecurrent,
-      'recurrency_id': recurrencyId,
-      'isShared': isShared, // NOVO
-    };
-  }
-  factory Receipt.fromMapFromFirestore(Map<String, dynamic> map, String id) {
-    return Receipt(
-      id: id, // Recebe o ID do documento
-      title: map['title'],
-      value: (map['value'] as num).toDouble(), // Converte 'num' para 'double'
-      date: (map['date'] as Timestamp).toDate(), // Converte Timestamp para DateTime
-      isRecurrent: map['isRecurrent'] ?? false,
-      recurrencyId: map['recurrencyId'],
-      category: ReceiptCategory(
-        name: map['category_name'] ?? 'Outros',
-        icon: IconData(
-          map['category_icon'] ?? 0xe360, // Usa um ícone padrão se não encontrar
-          fontFamily: 'MaterialIcons',
-        ),
-      ),
-      isShared: map['isShared'] ?? false, // NOVO
-    );
-  }
   Receipt copyWith({
     String? id,
     int? localId,
@@ -133,9 +38,10 @@ class Receipt {
     double? value,
     DateTime? date,
     bool? isRecurrent,
-    int? recurrencyId,
+    int? recurrencyType,
+    bool? isShared,
+    String? sharedFromUid,
     ReceiptCategory? category,
-    bool? isShared, // NOVO
   }) {
     return Receipt(
       id: id ?? this.id,
@@ -144,10 +50,89 @@ class Receipt {
       value: value ?? this.value,
       date: date ?? this.date,
       isRecurrent: isRecurrent ?? this.isRecurrent,
-      recurrencyId: recurrencyId ?? this.recurrencyId,
+      recurrencyType: recurrencyType ?? this.recurrencyType,
+      isShared: isShared ?? this.isShared,
+      sharedFromUid: sharedFromUid ?? this.sharedFromUid,
       category: category ?? this.category,
-      isShared: isShared ?? this.isShared, // NOVO
     );
   }
 
+  Map<String, dynamic> toMapForFirestore() {
+    return {
+      'title': title,
+      'value': value,
+      // Store the Firestore-friendly Timestamp
+      'date': Timestamp.fromDate(date),
+      'isRecurrent': isRecurrent,
+      'recurrencyType': recurrencyType,
+      'isShared': isShared,
+      'sharedFromUid': sharedFromUid,
+      'categoryId': category.id,
+      'categoryName': category.name,
+    };
+  }
+
+  Map<String, dynamic> toMapForSqlite() {
+    return {
+      'id': id,
+      'title': title,
+      'value': value,
+      'date': date.toIso8601String(),
+      'isRecurrent': isRecurrent ? 1 : 0,
+      'recurrencyType': recurrencyType,
+      'isShared': isShared ? 1 : 0,
+      'sharedFromUid': sharedFromUid,
+      'categoryId': category.id,
+      'categoryName': category.name,
+    };
+  }
+
+  factory Receipt.fromMapFromFirestore(Map<String, dynamic> map, String id) {
+    DateTime parsedDate;
+    if (map['date'] is Timestamp) {
+      parsedDate = (map['date'] as Timestamp).toDate();
+    } else {
+      parsedDate = DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now();
+    }
+
+    return Receipt(
+      id: id,
+      localId: null,
+      title: map['title'] ?? '',
+      value: (map['value'] is num) ? (map['value'] as num).toDouble() : double.tryParse(map['value']?.toString() ?? '') ?? 0.0,
+      date: parsedDate,
+      isRecurrent: map['isRecurrent'] ?? false,
+      recurrencyType: map['recurrencyType'] as int?,
+      isShared: map['isShared'] ?? false,
+      sharedFromUid: map['sharedFromUid']?.toString(),
+      category: ReceiptCategory(
+        name: map['categoryName'] ?? 'Outros',
+        icon: Icons.attach_money,
+        id: map['categoryId']?.toString() ?? 'outros',
+      ),
+    );
+  }
+
+  factory Receipt.fromMapForSqlite(Map<String, dynamic> map) {
+    final localId = map['localId'] is int
+        ? map['localId'] as int
+        : (map['localId'] != null ? int.tryParse(map['localId'].toString()) : null);
+
+    return Receipt(
+      id: map['id']?.toString(),
+      localId: localId,
+      title: map['title'] ?? '',
+      value: (map['value'] is num) ? (map['value'] as num).toDouble() : double.tryParse(map['value']?.toString() ?? '') ?? 0.0,
+      date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
+      isRecurrent: (map['isRecurrent'] ?? 0) == 1,
+      recurrencyType: map['recurrencyType'] is int ? map['recurrencyType'] as int : (map['recurrencyType'] != null ? int.tryParse(map['recurrencyType'].toString()) : null),
+      isShared: (map['isShared'] ?? 0) == 1,
+      sharedFromUid: map['sharedFromUid']?.toString(),
+      category: ReceiptCategory(
+        name: map['categoryName'] ?? 'Outros',
+        icon: Icons.attach_money,
+        id: map['categoryId']?.toString() ?? 'outros',
+      ),
+    );
+  }
 }

@@ -1,0 +1,1041 @@
+[{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/database_helper.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "return_of_invalid_type",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/return_of_invalid_type",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "A value of type 'List<dynamic>' can't be returned from the method 'getAllProductCategories' because it has a return type of 'Future<List<ProductCategory>>'.",
+	"source": "dart",
+	"startLineNumber": 163,
+	"startColumn": 12,
+	"endLineNumber": 165,
+	"endColumn": 16,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/app_categories.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 8,
+	"startColumn": 5,
+	"endLineNumber": 8,
+	"endColumn": 20,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/app_categories.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 9,
+	"startColumn": 5,
+	"endLineNumber": 9,
+	"endColumn": 20,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/app_categories.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 10,
+	"startColumn": 5,
+	"endLineNumber": 10,
+	"endColumn": 20,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/app_categories.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 11,
+	"startColumn": 5,
+	"endLineNumber": 11,
+	"endColumn": 20,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/expense.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 48,
+	"startColumn": 17,
+	"endLineNumber": 48,
+	"endColumn": 32,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/expense.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 123,
+	"startColumn": 17,
+	"endLineNumber": 123,
+	"endColumn": 32,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 58,
+	"startColumn": 11,
+	"endLineNumber": 58,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 59,
+	"startColumn": 11,
+	"endLineNumber": 59,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 60,
+	"startColumn": 11,
+	"endLineNumber": 60,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 61,
+	"startColumn": 11,
+	"endLineNumber": 61,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 62,
+	"startColumn": 11,
+	"endLineNumber": 62,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 63,
+	"startColumn": 11,
+	"endLineNumber": 63,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_method",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_method",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The method 'getPrivateExpensesStream' isn't defined for the type 'FirestoreService'.\nTry correcting the name to the name of an existing method, or defining a method named 'getPrivateExpensesStream'.",
+	"source": "dart",
+	"startLineNumber": 175,
+	"startColumn": 48,
+	"endLineNumber": 175,
+	"endColumn": 72,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_method",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_method",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The method 'getPrivateReceiptsStream' isn't defined for the type 'FirestoreService'.\nTry correcting the name to the name of an existing method, or defining a method named 'getPrivateReceiptsStream'.",
+	"source": "dart",
+	"startLineNumber": 181,
+	"startColumn": 48,
+	"endLineNumber": 181,
+	"endColumn": 72,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_getter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_getter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The getter 'partnershipInvitesCollection' isn't defined for the type 'FirestoreService'.\nTry importing the library that defines 'partnershipInvitesCollection', correcting the name to the name of an existing getter, or defining a getter or field named 'partnershipInvitesCollection'.",
+	"source": "dart",
+	"startLineNumber": 205,
+	"startColumn": 24,
+	"endLineNumber": 205,
+	"endColumn": 52,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_getter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_getter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The getter 'partnershipsCollection' isn't defined for the type 'FirestoreService'.\nTry importing the library that defines 'partnershipsCollection', correcting the name to the name of an existing getter, or defining a getter or field named 'partnershipsCollection'.",
+	"source": "dart",
+	"startLineNumber": 230,
+	"startColumn": 58,
+	"endLineNumber": 230,
+	"endColumn": 80,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_getter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_getter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The getter 'partnershipsCollection' isn't defined for the type 'FirestoreService'.\nTry importing the library that defines 'partnershipsCollection', correcting the name to the name of an existing getter, or defining a getter or field named 'partnershipsCollection'.",
+	"source": "dart",
+	"startLineNumber": 231,
+	"startColumn": 58,
+	"endLineNumber": 231,
+	"endColumn": 80,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_method",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_method",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The method 'getSharedExpensesCollection' isn't defined for the type 'FirestoreService'.\nTry correcting the name to the name of an existing method, or defining a method named 'getSharedExpensesCollection'.",
+	"source": "dart",
+	"startLineNumber": 268,
+	"startColumn": 10,
+	"endLineNumber": 268,
+	"endColumn": 37,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_method",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_method",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The method 'getSharedReceiptsCollection' isn't defined for the type 'FirestoreService'.\nTry correcting the name to the name of an existing method, or defining a method named 'getSharedReceiptsCollection'.",
+	"source": "dart",
+	"startLineNumber": 281,
+	"startColumn": 10,
+	"endLineNumber": 281,
+	"endColumn": 37,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_method",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_method",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The method 'sendPartnershipInvite' isn't defined for the type 'FirestoreService'.\nTry correcting the name to the name of an existing method, or defining a method named 'sendPartnershipInvite'.",
+	"source": "dart",
+	"startLineNumber": 317,
+	"startColumn": 30,
+	"endLineNumber": 317,
+	"endColumn": 51,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_method",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_method",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The method 'establishPartnership' isn't defined for the type 'FirestoreService'.\nTry correcting the name to the name of an existing method, or defining a method named 'establishPartnership'.",
+	"source": "dart",
+	"startLineNumber": 322,
+	"startColumn": 30,
+	"endLineNumber": 322,
+	"endColumn": 50,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_getter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_getter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The getter 'partnershipInvitesCollection' isn't defined for the type 'FirestoreService'.\nTry importing the library that defines 'partnershipInvitesCollection', correcting the name to the name of an existing getter, or defining a getter or field named 'partnershipInvitesCollection'.",
+	"source": "dart",
+	"startLineNumber": 327,
+	"startColumn": 31,
+	"endLineNumber": 327,
+	"endColumn": 59,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_method",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_method",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The method 'removePartnership' isn't defined for the type 'FirestoreService'.\nTry correcting the name to the name of an existing method, or defining a method named 'removePartnership'.",
+	"source": "dart",
+	"startLineNumber": 335,
+	"startColumn": 30,
+	"endLineNumber": 335,
+	"endColumn": 47,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'sharedCollectionId' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'sharedCollectionId'.",
+	"source": "dart",
+	"startLineNumber": 359,
+	"startColumn": 9,
+	"endLineNumber": 359,
+	"endColumn": 27,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'sharedCollectionId' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'sharedCollectionId'.",
+	"source": "dart",
+	"startLineNumber": 371,
+	"startColumn": 9,
+	"endLineNumber": 371,
+	"endColumn": 27,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'isShared' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'isShared'.",
+	"source": "dart",
+	"startLineNumber": 372,
+	"startColumn": 9,
+	"endLineNumber": 372,
+	"endColumn": 17,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'sharedCollectionId' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'sharedCollectionId'.",
+	"source": "dart",
+	"startLineNumber": 387,
+	"startColumn": 9,
+	"endLineNumber": 387,
+	"endColumn": 27,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'sharedCollectionId' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'sharedCollectionId'.",
+	"source": "dart",
+	"startLineNumber": 400,
+	"startColumn": 9,
+	"endLineNumber": 400,
+	"endColumn": 27,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'sharedCollectionId' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'sharedCollectionId'.",
+	"source": "dart",
+	"startLineNumber": 412,
+	"startColumn": 9,
+	"endLineNumber": 412,
+	"endColumn": 27,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/finance_state.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'isShared' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'isShared'.",
+	"source": "dart",
+	"startLineNumber": 413,
+	"startColumn": 9,
+	"endLineNumber": 413,
+	"endColumn": 17,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/receipt.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_getter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_getter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The getter 'id' isn't defined for the type 'ReceiptCategory'.\nTry importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id'.",
+	"source": "dart",
+	"startLineNumber": 70,
+	"startColumn": 30,
+	"endLineNumber": 70,
+	"endColumn": 32,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/receipt.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_getter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_getter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The getter 'id' isn't defined for the type 'ReceiptCategory'.\nTry importing the library that defines 'id', correcting the name to the name of an existing getter, or defining a getter or field named 'id'.",
+	"source": "dart",
+	"startLineNumber": 85,
+	"startColumn": 30,
+	"endLineNumber": 85,
+	"endColumn": 32,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/receipt.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'id'.",
+	"source": "dart",
+	"startLineNumber": 111,
+	"startColumn": 9,
+	"endLineNumber": 111,
+	"endColumn": 11,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/models/receipt.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "undefined_named_parameter",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/undefined_named_parameter",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' isn't defined.\nTry correcting the name to an existing named parameter's name, or defining a named parameter with the name 'id'.",
+	"source": "dart",
+	"startLineNumber": 134,
+	"startColumn": 9,
+	"endLineNumber": 134,
+	"endColumn": 11,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 43,
+	"startColumn": 11,
+	"endLineNumber": 43,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 44,
+	"startColumn": 11,
+	"endLineNumber": 44,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 45,
+	"startColumn": 11,
+	"endLineNumber": 45,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 46,
+	"startColumn": 11,
+	"endLineNumber": 46,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 47,
+	"startColumn": 11,
+	"endLineNumber": 47,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 48,
+	"startColumn": 11,
+	"endLineNumber": 48,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 49,
+	"startColumn": 11,
+	"endLineNumber": 49,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 50,
+	"startColumn": 11,
+	"endLineNumber": 50,
+	"endColumn": 26,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/add_transaction_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 461,
+	"startColumn": 30,
+	"endLineNumber": 461,
+	"endColumn": 45,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/expense_category_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 17,
+	"startColumn": 5,
+	"endLineNumber": 17,
+	"endColumn": 20,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/expense_category_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 18,
+	"startColumn": 5,
+	"endLineNumber": 18,
+	"endColumn": 20,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/expense_category_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 19,
+	"startColumn": 5,
+	"endLineNumber": 19,
+	"endColumn": 20,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/expense_category_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 20,
+	"startColumn": 5,
+	"endLineNumber": 20,
+	"endColumn": 20,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/expense_category_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 84,
+	"startColumn": 32,
+	"endLineNumber": 84,
+	"endColumn": 47,
+	"origin": "extHost1"
+},{
+	"resource": "/D:/rhyan/Fratteer/family_finances/lib/screens/overview_screen.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "missing_required_argument",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/missing_required_argument",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The named parameter 'id' is required, but there's no corresponding argument.\nTry adding the required argument.",
+	"source": "dart",
+	"startLineNumber": 282,
+	"startColumn": 33,
+	"endLineNumber": 282,
+	"endColumn": 48,
+	"origin": "extHost1"
+},{
+	"resource": "/d:/rhyan/Fratteer/family_finances/lib/services/firestore_service.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "return_of_invalid_type",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/return_of_invalid_type",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "A value of type 'Map<dynamic, dynamic>' can't be returned from the method '_getCategoryMap' because it has a return type of 'Future<Map<String, ProductCategory>>'.",
+	"source": "dart",
+	"startLineNumber": 86,
+	"startColumn": 12,
+	"endLineNumber": 86,
+	"endColumn": 15,
+	"origin": "extHost1"
+},{
+	"resource": "/d:/rhyan/Fratteer/family_finances/lib/services/firestore_service.dart",
+	"owner": "_generated_diagnostic_collection_name_#3",
+	"code": {
+		"value": "return_of_invalid_type_from_closure",
+		"target": {
+			"$mid": 1,
+			"path": "/diagnostics/return_of_invalid_type_from_closure",
+			"scheme": "https",
+			"authority": "dart.dev"
+		}
+	},
+	"severity": 8,
+	"message": "The returned type 'List<dynamic>' isn't returnable from a 'List<ProductCategory>' function, as required by the closure's context.",
+	"source": "dart",
+	"startLineNumber": 108,
+	"startColumn": 24,
+	"endLineNumber": 111,
+	"endColumn": 24,
+	"origin": "extHost1"
+}]

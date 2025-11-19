@@ -1,10 +1,11 @@
+// lib/models/expense.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'expense_category.dart';
 
 class Expense {
-  final String? id; // O ID agora pode ser String (do Firestore)
-  final int? localId;
+  final String? id; // Firestore document ID (nullable)
+  final int? localId; // SQLite autoincrement ID (nullable)
   final String title;
   final double value;
   final ExpenseCategory category;
@@ -16,7 +17,7 @@ class Expense {
   final int? recurrentIntervalDays;
   final bool isInInstallments;
   final int? installmentCount;
-  final bool isShared; // NOVO: Flag para transação conjunta/compartilhada
+  final bool isShared;
 
   Expense({
     this.id,
@@ -32,38 +33,40 @@ class Expense {
     this.recurrentIntervalDays,
     required this.isInInstallments,
     this.installmentCount,
-    this.isShared = false, // Padrão é falso
+    this.isShared = false,
   });
 
   bool get isFuture => date.isAfter(DateTime.now());
 
-  // Construtor 'fromMap' atualizado para o Firestore
+  /// Cria a partir de um mapa do Firestore. `id` é o documentId passado separadamente.
   static Expense fromMap(Map<String, dynamic> map, {String? id}) {
     return Expense(
-      id: id, // Recebe o ID do documento
-      title: map['title'],
-      value: (map['value'] as num).toDouble(),
+      id: id,
+      localId: null,
+      title: map['title'] ?? '',
+      value: (map['value'] is num) ? (map['value'] as num).toDouble() : 0.0,
       category: ExpenseCategory(
-        name: map['category_name'],
+        name: map['category_name'] ?? 'Outros',
         icon: IconData(
-          map['category_icon'],
+          (map['category_icon'] is int) ? map['category_icon'] as int : Icons.category.codePoint,
           fontFamily: 'MaterialIcons',
         ),
       ),
-      note: map['note'],
-      // Converte o Timestamp do Firestore para DateTime
-      date: (map['date'] as Timestamp).toDate(),
-      isRecurrent: map['is_recurrent'] ?? false,
-      recurrencyId: map['recurrency_id'],
-      recurrencyType: map['recurrency_type'],
-      recurrentIntervalDays: map['recurrent_interval_days'],
-      isInInstallments: map['is_in_installments'] ?? false,
-      installmentCount: map['installment_count'],
-      isShared: map['isShared'] ?? false, // NOVO
+      note: map['note'] ?? '',
+      date: (map['date'] is Timestamp)
+          ? (map['date'] as Timestamp).toDate()
+          : DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
+      isRecurrent: map['is_recurrent'] ?? map['isRecurrent'] ?? false,
+      recurrencyId: map['recurrency_id'] ?? map['recurrencyId'],
+      recurrencyType: map['recurrency_type'] ?? map['recurrencyType'],
+      recurrentIntervalDays: map['recurrent_interval_days'] ?? map['recurrentIntervalDays'],
+      isInInstallments: map['is_in_installments'] ?? map['isInInstallments'] ?? false,
+      installmentCount: map['installment_count'] ?? map['installmentCount'],
+      isShared: map['isShared'] ?? false,
     );
   }
 
-  // Método 'toMap' atualizado para o Firestore
+  /// Map usado para enviar para o Firestore
   Map<String, dynamic> toMap() {
     return {
       'title': title,
@@ -71,103 +74,75 @@ class Expense {
       'category_name': category.name,
       'category_icon': category.icon.codePoint,
       'note': note,
-      'date': Timestamp.fromDate(date), // Converte DateTime para Timestamp
+      'date': Timestamp.fromDate(date),
       'is_recurrent': isRecurrent,
       'recurrency_id': recurrencyId,
       'recurrency_type': recurrencyType,
       'recurrent_interval_days': recurrentIntervalDays,
       'is_in_installments': isInInstallments,
       'installment_count': installmentCount,
-      'isShared': isShared, // NOVO
+      'isShared': isShared,
     };
   }
-  // Método para converter para Map (útil para Sqflite)
+
+  /// Map para armazenar no SQLite (use as chaves existentes no schema)
   Map<String, dynamic> toMapForSqlite() {
     return {
-      'id': localId, // Usa o localId para o Sqflite
+      // 'id' aqui é o Firestore ID (nullable) — não confundir com localId
+      'id': id,
       'title': title,
       'value': value,
-      'category_name': category.name,
-      'category_icon': category.icon.codePoint,
+      'categoryId': null, // se tiver category.id, coloque aqui; manter null se não houver
+      'categoryName': category.name,
+      'categoryIcon': category.icon.codePoint,
       'note': note,
-      'date': date.toIso8601String(), // Armazena DateTime como String ISO
-      'isRecurrent': isRecurrent ? 1 : 0, // SQLite não tem booleano, usa 0 ou 1
+      'date': date.toIso8601String(),
+      'isRecurrent': isRecurrent ? 1 : 0,
       'recurrencyId': recurrencyId,
       'recurrencyType': recurrencyType,
       'recurrentIntervalDays': recurrentIntervalDays,
       'isInInstallments': isInInstallments ? 1 : 0,
       'installmentCount': installmentCount,
-      // isShared não é relevante para o DB local/privado
+      'isShared': isShared ? 1 : 0,
+      'sharedFromUid': null,
     };
   }
 
-  // Método para converter de Map (útil para Sqflite)
+  /// Constrói a partir de um row do SQLite (Map resultante do db.query)
   factory Expense.fromMapForSqlite(Map<String, dynamic> map) {
+    // map provavel: {'localId': 1, 'id': 'fireId', 'title': ..., 'date': '2023-...'}
+    final localId = map['localId'] is int
+        ? map['localId'] as int
+        : (map['localId'] != null ? int.tryParse(map['localId'].toString()) : null);
+
     return Expense(
-      id: map['id']?.toString(), // O ID do Sqflite é int, mas o modelo usa String
-      localId: map['id'] as int?,
-      title: map['title'] as String,
-      value: map['value'] as double,
+      id: map['id']?.toString(),
+      localId: localId,
+      title: map['title']?.toString() ?? '',
+      value: (map['value'] is num) ? (map['value'] as num).toDouble() : double.tryParse(map['value']?.toString() ?? '') ?? 0.0,
       category: ExpenseCategory(
-        name: map['category_name'] as String,
+        name: map['categoryName']?.toString() ?? 'Outros',
         icon: IconData(
-          map['category_icon'] as int,
+          (map['categoryIcon'] is int) ? map['categoryIcon'] as int : Icons.category.codePoint,
           fontFamily: 'MaterialIcons',
         ),
       ),
-      note: map['note'] as String,
-      date: DateTime.parse(map['date'] as String), // Converte String ISO para DateTime
-      isRecurrent: (map['isRecurrent'] as int) == 1,
-      recurrencyId: map['recurrencyId'] as int?,
-      recurrencyType: map['recurrencyType'] as int?,
-      recurrentIntervalDays: map['recurrentIntervalDays'] as int?,
-      isInInstallments: (map['isInInstallments'] as int) == 1,
-      installmentCount: map['installmentCount'] as int?,
-      isShared: false, // Força falso no modo local
+      note: map['note']?.toString() ?? '',
+      date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
+      isRecurrent: (map['isRecurrent'] ?? 0) == 1,
+      recurrencyId: map['recurrencyId'] is int ? map['recurrencyId'] as int : (map['recurrencyId'] != null ? int.tryParse(map['recurrencyId'].toString()) : null),
+      recurrencyType: map['recurrencyType'] is int ? map['recurrencyType'] as int : (map['recurrencyType'] != null ? int.tryParse(map['recurrencyType'].toString()) : null),
+      recurrentIntervalDays: map['recurrentIntervalDays'] is int ? map['recurrentIntervalDays'] as int : (map['recurrentIntervalDays'] != null ? int.tryParse(map['recurrentIntervalDays'].toString()) : null),
+      isInInstallments: (map['isInInstallments'] ?? 0) == 1,
+      installmentCount: map['installmentCount'] is int ? map['installmentCount'] as int : (map['installmentCount'] != null ? int.tryParse(map['installmentCount'].toString()) : null),
+      isShared: (map['isShared'] ?? 0) == 1,
     );
-  }
-  Map<String, dynamic> toMapForFirestore() {
-    return {
-      // O 'id' não é guardado aqui, ele é a chave do documento
-      'title': title,
-      'value': value,
-      'category_name': category.name,
-      'category_icon': category.icon.codePoint,
-      'note': note,
-      'date': Timestamp.fromDate(date), // Converte DateTime para Timestamp
-      'isRecurrent': isRecurrent,
-      'recurrencyId': recurrencyId,
-      'recurrencyType': recurrencyType,
-      'recurrentIntervalDays': recurrentIntervalDays,
-      'isInInstallments': isInInstallments,
-      'installmentCount': installmentCount,
-      'isShared': isShared, // NOVO
-    };
   }
 
-  factory Expense.fromMapFromFirestore(Map<String, dynamic> map, String id) {
-    return Expense(
-      id: id, // Recebe o ID do documento
-      title: map['title'],
-      value: (map['value'] as num).toDouble(), // Converte 'num' para 'double'
-      category: ExpenseCategory(
-        name: map['category_name'],
-        icon: IconData(
-          map['category_icon'],
-          fontFamily: 'MaterialIcons',
-        ),
-      ),
-      note: map['note'],
-      date: (map['date'] as Timestamp).toDate(), // Converte Timestamp para DateTime
-      isRecurrent: map['isRecurrent'] ?? false,
-      recurrencyId: map['recurrencyId'],
-      recurrencyType: map['recurrencyType'],
-      recurrentIntervalDays: map['recurrentIntervalDays'],
-      isInInstallments: map['isInInstallments'] ?? false,
-      installmentCount: map['installmentCount'],
-      isShared: map['isShared'] ?? false, // NOVO
-    );
-  }
+  Map<String, dynamic> toMapForFirestore() => toMap();
+
+  factory Expense.fromMapFromFirestore(Map<String, dynamic> map, String id) => fromMap(map, id: id);
+
   Expense copyWith({
     String? id,
     int? localId,
@@ -182,7 +157,7 @@ class Expense {
     int? recurrentIntervalDays,
     bool? isInInstallments,
     int? installmentCount,
-    bool? isShared, // NOVO
+    bool? isShared,
   }) {
     return Expense(
       id: id ?? this.id,
@@ -198,8 +173,7 @@ class Expense {
       recurrentIntervalDays: recurrentIntervalDays ?? this.recurrentIntervalDays,
       isInInstallments: isInInstallments ?? this.isInInstallments,
       installmentCount: installmentCount ?? this.installmentCount,
-      isShared: isShared ?? this.isShared, // NOVO
+      isShared: isShared ?? this.isShared,
     );
   }
-
-} 
+}

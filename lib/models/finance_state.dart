@@ -1,58 +1,44 @@
+// lib/models/finance_state.dart
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:family_finances/models/partnership.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:rxdart/rxdart.dart'; // NECESSÁRIO para combinar streams
+
 // Serviços
 import '../services/firestore_service.dart';
 import '../services/gemini_service.dart';
-import '../database_helper.dart'; // Importa o DB local
+import '../database_helper.dart';
+
 // Modelos de Dados
 import 'expense.dart';
 import 'receipt.dart';
 import 'product.dart';
 import 'product_category.dart';
-import 'partnership.dart'; // NOVO
-import 'nfce.dart';
 import 'expense_category.dart';
+import 'nfce.dart';
 
 class FinanceState with ChangeNotifier {
   // Serviços
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
   FirestoreService? _firestoreService;
   late GeminiService _geminiService;
-  
-  // Controlo de Estado
-  StreamSubscription? _expensesSubscription;
-  StreamSubscription? _receiptsSubscription;
-  StreamSubscription? _productsSubscription;
-  StreamSubscription? _productCategoriesSubscription;
-  StreamSubscription? _partnershipSubscription; // NOVO
-  StreamSubscription? _sharedExpensesSubscription; // NOVO
-  StreamSubscription? _sharedReceiptsSubscription; // NOVO
+
+  // Subscriptions
+  StreamSubscription<List<Expense>>? _expensesSubscription;
+  StreamSubscription<List<Receipt>>? _receiptsSubscription;
+  StreamSubscription<List<Product>>? _productsSubscription;
+  StreamSubscription<List<ProductCategory>>? _productCategoriesSubscription;
 
   String? _uid;
   bool _isLoading = true;
-  
-  // NOVO ESTADO DE PARCERIA
-  Partnership? _currentPartnership;
-  List<PartnershipInvite> _incomingInvites = [];
-  String? get currentPartnerId => _currentPartnership != null 
-    ? (_currentPartnership!.user1Id == _uid ? _currentPartnership!.user2Id : _currentPartnership!.user1Id)
-    : null;
-  String? get sharedCollectionId => _currentPartnership?.sharedCollectionId;
-  List<PartnershipInvite> get incomingInvites => _incomingInvites;
-  
-  // Listas de Dados
-  List<Expense> _expenses = []; // Privado
-  List<Receipt> _receipts = []; // Privado
-  List<Expense> _sharedExpenses = []; // Compartilhado
-  List<Receipt> _sharedReceipts = []; // Compartilhado
+
+  // Dados locais (privados)
+  List<Expense> _expenses = [];
+  List<Receipt> _receipts = [];
   List<Product> _products = [];
   List<ProductCategory> _productCategories = [];
-  
-  // Categorias de Despesa (estáticas por agora)
+
+  // Categorias estáticas de despesas (fallback)
   final List<ExpenseCategory> _expenseCategories = [
     const ExpenseCategory(name: 'Compras', icon: Icons.shopping_cart),
     const ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
@@ -61,22 +47,23 @@ class FinanceState with ChangeNotifier {
     const ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
     const ExpenseCategory(name: 'Outros', icon: Icons.category),
   ];
-  
-  // --- Getters Públicos ---
+
+  // --- Getters ---
   bool get isLoggedIn => _uid != null;
-  // Combina as listas privada e compartilhada para exibição
+
+  // Expondo listas (privadas apenas; se futuramente quiser mesclar com "shared", faz-se aqui)
   List<Expense> get expenses {
-      final combined = [..._expenses, ..._sharedExpenses];
-      // Ordena pela data (mais recente primeiro)
-      combined.sort((a, b) => b.date.compareTo(a.date));
-      return combined;
+    final copy = List<Expense>.from(_expenses);
+    copy.sort((a, b) => b.date.compareTo(a.date));
+    return copy;
   }
+
   List<Receipt> get receipts {
-      final combined = [..._receipts, ..._sharedReceipts];
-      // Ordena pela data (mais recente primeiro)
-      combined.sort((a, b) => b.date.compareTo(a.date));
-      return combined;
+    final copy = List<Receipt>.from(_receipts);
+    copy.sort((a, b) => b.date.compareTo(a.date));
+    return copy;
   }
+
   List<Product> get shoppingListProducts => _products;
   List<ProductCategory> get productCategories => _productCategories;
   bool get isLoading => _isLoading;
@@ -85,48 +72,42 @@ class FinanceState with ChangeNotifier {
   // --- Inicialização ---
   FinanceState() {
     _geminiService = GeminiService();
-    // Ouve as mudanças de autenticação
+    // Ouvimos alterações de autenticação
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _handleAuthStateChanged(user);
     });
-    // Verifica o estado inicial (pode já estar logado ou não)
+    // Checagem inicial
     _handleAuthStateChanged(FirebaseAuth.instance.currentUser);
   }
-  
-  /// Trata a mudança de utilizador, decidindo se carrega dados locais ou da nuvem.
+
   void _handleAuthStateChanged(User? user) {
-     if (user != null && _uid != user.uid) {
+    // evita reloads desnecessários
+    if (user != null && _uid != user.uid) {
       _uid = user.uid;
       _initializeCloudData(user.uid);
-      _listenToInvites(user.email ?? user.uid); // Começa a ouvir convites
     } else if (user == null && _uid != null) {
+      // logout
       _uid = null;
       _initializeLocalData();
-      _clearInviteListener();
     } else if (user == null && _uid == null) {
-      if (_products.isEmpty && _expenses.isEmpty && _receipts.isEmpty) {
-         _initializeLocalData();
+      // primeiro boot em modo local
+      if (_expenses.isEmpty && _receipts.isEmpty && _products.isEmpty) {
+        _initializeLocalData();
       }
     }
   }
 
-
-  /// Carrega todos os dados do banco de dados SQFlite local
+  // --- Modo Local (Sqflite) ---
   Future<void> _initializeLocalData() async {
-    print("Inicializando em MODO LOCAL (Sqflite)");
     if (!_isLoading) {
       _isLoading = true;
       notifyListeners();
     }
 
-    // Limpa subscrições antigas da nuvem
+    // Cancela streams da nuvem se existirem
     await _clearCloudSubscriptions();
     _firestoreService = null;
-    _currentPartnership = null; // Reseta parceria
-    _sharedExpenses = [];
-    _sharedReceipts = [];
 
-    // Carrega dados do Sqflite
     try {
       _expenses = await _databaseHelper.getAllExpenses();
       _receipts = await _databaseHelper.getAllReceipts();
@@ -140,210 +121,92 @@ class FinanceState with ChangeNotifier {
       _products = [];
     }
 
-    if (_isLoading) {
-      _isLoading = false;
-    }
+    _isLoading = false;
     notifyListeners();
   }
 
-  /// Inicializa os streams para ouvir o Firestore
+  // --- Modo Nuvem (Firestore) ---
   void _initializeCloudData(String uid) {
-    print("Inicializando em MODO NUVEM (Firestore) para $uid");
     if (!_isLoading) {
       _isLoading = true;
       notifyListeners();
     }
 
     _firestoreService = FirestoreService(uid: uid);
-    _clearCloudSubscriptions(); // Garante que não há streams duplicados
+    _clearCloudSubscriptions();
 
-    int streamsToLoad = 4; // Contagem de streams iniciais (private expenses, receipts, products, categories)
+    int streamsToLoad = 4;
     int streamsLoaded = 0;
 
     void checkLoading() {
       streamsLoaded++;
-      if (streamsLoaded == streamsToLoad && _isLoading) {
+      if (streamsLoaded >= streamsToLoad) {
         _isLoading = false;
-        notifyListeners();
-      } else if (!_isLoading) {
-        notifyListeners(); // Apenas notifica a atualização dos dados
       }
+      notifyListeners();
     }
 
-    // Streams Privados
-    _expensesSubscription = _firestoreService!.getPrivateExpensesStream().listen((data) {
-      // Filtra transações privadas (aquelas que não são compartilhadas)
-      _expenses = data.where((e) => !e.isShared).toList(); 
+    // NOTE: usa os nomes de método existentes no seu FirestoreService fornecido
+    _expensesSubscription = _firestoreService!.getExpensesStream().listen((data) {
+      // Caso seus documentos tenham campo 'isShared', e você queira filtrar,
+      // faça aqui. Atualmente assumimos que getExpensesStream devolve só as despesas do usuário.
+      _expenses = data;
       checkLoading();
-    }, onError: (e) { print("Erro no stream de despesas privadas: $e"); checkLoading(); });
+    }, onError: (e) {
+      print("Erro no stream de despesas: $e");
+      checkLoading();
+    });
 
-    _receiptsSubscription = _firestoreService!.getPrivateReceiptsStream().listen((data) {
-      // Filtra transações privadas (aquelas que não são compartilhadas)
-      _receipts = data.where((r) => !r.isShared).toList();
+    _receiptsSubscription = _firestoreService!.getReceiptsStream().listen((data) {
+      _receipts = data;
       checkLoading();
-    }, onError: (e) { print("Erro no stream de receitas privadas: $e"); checkLoading(); });
+    }, onError: (e) {
+      print("Erro no stream de receitas: $e");
+      checkLoading();
+    });
 
     _productsSubscription = _firestoreService!.getProductsStream().listen((data) {
-      _products = data; checkLoading();
-    }, onError: (e) { print("Erro no stream de produtos: $e"); checkLoading(); });
+      _products = data;
+      checkLoading();
+    }, onError: (e) {
+      print("Erro no stream de produtos: $e");
+      checkLoading();
+    });
 
     _productCategoriesSubscription = _firestoreService!.getCategoriesStream().listen((data) {
+      // garante categoria indefinida no topo
       _productCategories = [ProductCategory.indefinida, ...data];
       checkLoading();
-    }, onError: (e) { print("Erro no stream de categorias: $e"); checkLoading(); });
-    
-    // Stream de Parceria
-    _listenToPartnership();
-  }
-  
-  /// Inicia o listener de convites (só funciona para usuários logados).
-  void _listenToInvites(String userUidOrEmail) {
-    if (_firestoreService == null) return;
-    
-    // Escuta a coleção de convites onde o receiverId é o UID ou Email
-    _firestoreService!.partnershipInvitesCollection.where('receiverId', isEqualTo: userUidOrEmail).snapshots().listen((snapshot) {
-      _incomingInvites = snapshot.docs
-          .map((doc) => PartnershipInvite.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-          .toList();
-      notifyListeners();
-    }, onError: (e) => print("Erro no stream de convites: $e"));
+    }, onError: (e) {
+      print("Erro no stream de categorias: $e");
+      checkLoading();
+    });
   }
 
-  /// Limpa o listener de convites.
-  void _clearInviteListener() {
-     _partnershipSubscription?.cancel();
-     _partnershipSubscription = null;
-     _incomingInvites = [];
-  }
-
-  // NOVO: Adiciona o listener para a Partnership e o Shared Collection
-  void _listenToPartnership() {
-    if (_firestoreService == null || _uid == null) return;
-
-    // Cancela listeners antigos
-    _partnershipSubscription?.cancel();
-    _sharedExpensesSubscription?.cancel();
-    _sharedReceiptsSubscription?.cancel();
-    
-    // Combina os dois streams de consulta (user1Id é o uid OU user2Id é o uid)
-    final privatePartnershipStream1 = _firestoreService!.partnershipsCollection.where('user1Id', isEqualTo: _uid).limit(1).snapshots() as Stream<QuerySnapshot<Map<String, dynamic>>>;
-    final privatePartnershipStream2 = _firestoreService!.partnershipsCollection.where('user2Id', isEqualTo: _uid).limit(1).snapshots() as Stream<QuerySnapshot<Map<String, dynamic>>>;
-    
-    _partnershipSubscription = Rx.combineLatest2<QuerySnapshot<Map<String, dynamic>>, QuerySnapshot<Map<String, dynamic>>, Partnership?>(privatePartnershipStream1, privatePartnershipStream2, (s1, s2) {
-       if (s1.docs.isNotEmpty) {
-         return Partnership.fromMap(s1.docs.first.data(), s1.docs.first.id);
-       } else if (s2.docs.isNotEmpty) {
-         return Partnership.fromMap(s2.docs.first.data(), s2.docs.first.id);
-       }
-       return null;
-    }).listen((partnership) {
-        _currentPartnership = partnership;
-        notifyListeners();
-        
-        // Se a parceria for estabelecida ou alterada, inicia/reinicia os listeners compartilhados
-        if (_currentPartnership?.sharedCollectionId != null) {
-          _listenToSharedCollections(_currentPartnership!.sharedCollectionId);
-        } else {
-          // Se a parceria for removida
-          _sharedExpensesSubscription?.cancel();
-          _sharedReceiptsSubscription?.cancel();
-          _sharedExpenses = [];
-          _sharedReceipts = [];
-          notifyListeners();
-        }
-    }, onError: (e) => print("Erro no stream de parceria: $e"));
-  }
-  
-  // NOVO: Escuta as coleções de transações compartilhadas
-  void _listenToSharedCollections(String sharedCollectionId) {
-    if (_firestoreService == null) return;
-    
-    // Cancela streams antigos
-    _sharedExpensesSubscription?.cancel();
-    _sharedReceiptsSubscription?.cancel();
-    
-    // Shared Expenses
-    _sharedExpensesSubscription = _firestoreService!
-        .getSharedExpensesCollection(sharedCollectionId)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Expense.fromMapFromFirestore(doc.data() as Map<String, dynamic>, doc.id))
-            .toList())
-        .listen((data) {
-          _sharedExpenses = data;
-          notifyListeners();
-        }, onError: (e) => print("Erro no stream de despesas compartilhadas: $e"));
-        
-    // Shared Receipts
-    _sharedReceiptsSubscription = _firestoreService!
-        .getSharedReceiptsCollection(sharedCollectionId)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Receipt.fromMapFromFirestore(doc.data() as Map<String, dynamic>, doc.id))
-            .toList())
-        .listen((data) {
-          _sharedReceipts = data;
-          notifyListeners();
-        }, onError: (e) => print("Erro no stream de receitas compartilhadas: $e"));
-  }
-
-
-  /// Método auxiliar para cancelar todos os streams
   Future<void> _clearCloudSubscriptions() async {
     await _expensesSubscription?.cancel();
     await _receiptsSubscription?.cancel();
     await _productsSubscription?.cancel();
     await _productCategoriesSubscription?.cancel();
-    await _partnershipSubscription?.cancel(); // NOVO
-    await _sharedExpensesSubscription?.cancel(); // NOVO
-    await _sharedReceiptsSubscription?.cancel(); // NOVO
+
     _expensesSubscription = null;
     _receiptsSubscription = null;
     _productsSubscription = null;
     _productCategoriesSubscription = null;
-    _partnershipSubscription = null;
-    _sharedExpensesSubscription = null;
-    _sharedReceiptsSubscription = null;
-  }
-  
-  // --- MÉTODOS DE PARCERIA (Públicos) ---
-  
-  Future<void> sendInvite(String receiverUidOrEmail) async {
-    if (_firestoreService == null || _currentPartnership != null) return;
-    // O email é usado como um identificador temporário/parceiro
-    await _firestoreService!.sendPartnershipInvite(receiverUidOrEmail);
-  }
-  
-  Future<void> acceptInvite(PartnershipInvite invite) async {
-    if (_firestoreService == null || _currentPartnership != null) return;
-    await _firestoreService!.establishPartnership(invite.senderId);
-    // O listener de parceria tratará de atualizar o estado
-  }
-  
-  Future<void> declineInvite(String inviteId) async {
-     await _firestoreService!.partnershipInvitesCollection.doc(inviteId).delete();
-     // Atualiza a lista localmente
-     _incomingInvites.removeWhere((i) => i.id == inviteId);
-     notifyListeners();
-  }
-  
-  Future<void> removePartnership() async {
-    if (_firestoreService == null || _currentPartnership == null) return;
-    await _firestoreService!.removePartnership(_currentPartnership!.id);
-    _currentPartnership = null;
-    notifyListeners();
   }
 
-  // --- MÉTODOS CRUD MULTIPLEXADOS (Atualizados para Shared) ---
+  @override
+  void dispose() {
+    _clearCloudSubscriptions();
+    super.dispose();
+  }
+
+  // --- CRUD multipath (local / cloud) ---
 
   Future<void> addExpense(Expense expense) async {
-    if (isLoggedIn) {
-      await _firestoreService?.addExpense(
-        expense, 
-        sharedCollectionId: expense.isShared ? sharedCollectionId : null
-      );
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.addExpense(expense);
+      // stream do Firestore irá atualizar a lista
     } else {
       final newExpense = await _databaseHelper.createExpense(expense);
       _expenses.insert(0, newExpense.copyWith(localId: newExpense.localId));
@@ -352,24 +215,17 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> updateExpense(Expense expense) async {
-    if (isLoggedIn) {
-      await _firestoreService?.updateExpense(
-        expense, 
-        sharedCollectionId: expense.isShared ? sharedCollectionId : null
-      );
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.updateExpense(expense);
     } else {
       await _databaseHelper.updateExpense(expense);
       await _loadAllDataFromSqlite();
     }
   }
 
-  Future<void> deleteExpense(String id, {bool isShared = false}) async {
-    if (isLoggedIn) {
-      await _firestoreService?.deleteExpense(
-        id, 
-        sharedCollectionId: sharedCollectionId, 
-        isShared: isShared
-      );
+  Future<void> deleteExpense(String id) async {
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.deleteExpense(id);
     } else {
       final localId = int.tryParse(id);
       if (localId == null) return;
@@ -380,37 +236,27 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> addReceipt(Receipt receipt) async {
-    if (isLoggedIn) {
-      await _firestoreService?.addReceipt(
-        receipt, 
-        sharedCollectionId: receipt.isShared ? sharedCollectionId : null
-      );
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.addReceipt(receipt);
     } else {
-       final newReceipt = await _databaseHelper.createReceipt(receipt);
+      final newReceipt = await _databaseHelper.createReceipt(receipt);
       _receipts.insert(0, newReceipt.copyWith(localId: newReceipt.localId));
       notifyListeners();
     }
   }
 
   Future<void> updateReceipt(Receipt receipt) async {
-    if (isLoggedIn) {
-      await _firestoreService?.updateReceipt(
-        receipt, 
-        sharedCollectionId: receipt.isShared ? sharedCollectionId : null
-      );
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.updateReceipt(receipt);
     } else {
       await _databaseHelper.updateReceipt(receipt);
       await _loadAllDataFromSqlite();
     }
   }
 
-  Future<void> deleteReceipt(String id, {bool isShared = false}) async {
-    if (isLoggedIn) {
-      await _firestoreService?.deleteReceipt(
-        id, 
-        sharedCollectionId: sharedCollectionId, 
-        isShared: isShared
-      );
+  Future<void> deleteReceipt(String id) async {
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.deleteReceipt(id);
     } else {
       final localId = int.tryParse(id);
       if (localId == null) return;
@@ -419,22 +265,12 @@ class FinanceState with ChangeNotifier {
       notifyListeners();
     }
   }
-  
-  // --- Outros métodos CRUD (mantidos) ---
-  
-  Future<void> _loadAllDataFromSqlite() async {
-      _expenses = await _databaseHelper.getAllExpenses();
-      _receipts = await _databaseHelper.getAllReceipts();
-      _products = await _databaseHelper.getAllProducts();
-      _productCategories = await _databaseHelper.getAllProductCategories();
-      notifyListeners();
-  }
 
   Future<void> addProduct(Product product) async {
-    if (isLoggedIn) {
-      await _firestoreService?.addProduct(product);
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.addProduct(product);
     } else {
-       final newProduct = await _databaseHelper.createProduct(product);
+      final newProduct = await _databaseHelper.createProduct(product);
       _products.add(newProduct.copyWith(localId: newProduct.localId));
       _products.sort((a, b) => a.nameLower.compareTo(b.nameLower));
       notifyListeners();
@@ -442,8 +278,8 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> updateProduct(Product product) async {
-    if (isLoggedIn) {
-      await _firestoreService?.updateProduct(product);
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.updateProduct(product);
     } else {
       await _databaseHelper.updateProduct(product);
       _products = await _databaseHelper.getAllProducts();
@@ -452,8 +288,8 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> deleteProduct(String productId) async {
-    if (isLoggedIn) {
-      await _firestoreService?.deleteProduct(productId);
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.deleteProduct(productId);
     } else {
       final localId = int.tryParse(productId);
       if (localId == null) return;
@@ -464,22 +300,22 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> toggleProductChecked(Product product, bool value) async {
-    final updatedProduct = product.copyWith(isChecked: value);
-    if (isLoggedIn) {
-      await _firestoreService?.updateProduct(updatedProduct);
+    final updated = product.copyWith(isChecked: value);
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.updateProduct(updated);
     } else {
-      await _databaseHelper.updateProduct(updatedProduct);
-      final index = _products.indexWhere((p) => p.localId == updatedProduct.localId);
-      if (index != -1) {
-        _products[index] = updatedProduct;
+      await _databaseHelper.updateProduct(updated);
+      final idx = _products.indexWhere((p) => p.localId == updated.localId);
+      if (idx != -1) {
+        _products[idx] = updated;
         notifyListeners();
       }
     }
   }
-  
+
   Future<void> addProductCategory(ProductCategory category) async {
-     if (isLoggedIn) {
-      await _firestoreService?.addProductCategory(category);
+    if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.addProductCategory(category);
     } else {
       await _databaseHelper.createProductCategory(category);
       _productCategories.add(category);
@@ -487,19 +323,63 @@ class FinanceState with ChangeNotifier {
     }
   }
 
-  // --- Getters de Saldo (mantidos e usando listas combinadas) ---
-  double get totalReceitasAtuais => receipts.where((r) => !r.isFuture).fold(0.0, (sum, item) => sum + item.value);
-  double get totalDespesasAtuais => expenses.where((e) => !e.isFuture).fold(0.0, (sum, item) => sum + item.value);
-  double get saldoAtual => totalReceitasAtuais - totalDespesasAtuais;
+  // --- Utilitários / sincronização local -> cloud (opcional) ---
 
-  double get totalReceitas => receipts.fold(0.0, (sum, item) => sum + item.value);
-  double get totalDespesas => expenses.fold(0.0, (sum, item) => sum + item.value);
+  Future<void> syncLocalDataToFirebase(String newUid) async {
+    if (_firestoreService == null || _firestoreService!.uid != newUid) {
+      _firestoreService = FirestoreService(uid: newUid);
+    }
 
-  // --- Função para Processar Itens da NFC-e (mantida) ---
-  Future<void> processNfceItems(Nfce nota) async {
-     // A implementação é a mesma, mas agora usa o addExpense modificado.
+    final localExpenses = await _databaseHelper.getAllExpenses();
+    final localReceipts = await _databaseHelper.getAllReceipts();
+    final localCategories = await _databaseHelper.getAllProductCategories();
+    final localProducts = await _databaseHelper.getAllProducts();
+
+    // Envia categorias -> produtos -> transações (ordem simples)
+    for (final cat in localCategories) {
+      // evitar reenvio de categorias default se necessário
+      await _firestoreService!.addProductCategory(cat);
+    }
+
+    for (final p in localProducts) {
+      await _firestoreService!.addProduct(p);
+    }
+
+    for (final e in localExpenses) {
+      await _firestoreService!.addExpense(e);
+    }
+
+    for (final r in localReceipts) {
+      await _firestoreService!.addReceipt(r);
+    }
+
+    // apaga local (opcional)
+    await _databaseHelper.deleteAllLocalData();
   }
 
+  Future<void> _loadAllDataFromSqlite() async {
+    _expenses = await _databaseHelper.getAllExpenses();
+    _receipts = await _databaseHelper.getAllReceipts();
+    _products = await _databaseHelper.getAllProducts();
+    _productCategories = await _databaseHelper.getAllProductCategories();
+    notifyListeners();
+  }
+
+  // --- Saldos ---
+  double get totalReceitas => receipts.fold(0.0, (sum, r) => sum + r.value);
+  double get totalDespesas => expenses.fold(0.0, (sum, e) => sum + e.value);
+  double get totalReceitasAtuais => receipts.where((r) => !r.isFuture).fold(0.0, (sum, r) => sum + r.value);
+  double get totalDespesasAtuais => expenses.where((e) => !e.isFuture).fold(0.0, (sum, e) => sum + e.value);
+  double get saldoAtual => totalReceitasAtuais - totalDespesasAtuais;
+
+  // --- NFC-e processing stub (use sua implementação existente) ---
+  Future<void> processNfceItems(Nfce nota) async {
+    // mantenha sua implementação (chamando GeminiService, classificando, criando produtos/despesas)
+    // aqui chamamos addProduct / addExpense que já cuidam do multiplex.
+    print('processNfceItems called (implemente conforme necessário).');
+  }
+
+  // Força notificação (útil para pull-to-refresh)
   void forceNotify() {
     notifyListeners();
   }

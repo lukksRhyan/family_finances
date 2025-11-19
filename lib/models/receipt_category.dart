@@ -1,3 +1,4 @@
+//lib/models/receipt_Category.dart
 import 'package:flutter/material.dart';
 
 class ReceiptCategory {

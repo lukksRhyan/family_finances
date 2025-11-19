@@ -1,10 +1,11 @@
+//lib/models/expense_category.dart
 import 'package:flutter/material.dart';
 
 class ExpenseCategory {
   final String name;
   final IconData icon;
 
-  const ExpenseCategory({required this.name, required this.icon});
+  const ExpenseCategory({required this.name, required this.icon, required id});
 
   @override
   bool operator ==(Object other) {
