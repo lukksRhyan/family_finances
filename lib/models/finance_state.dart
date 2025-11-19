@@ -1,15 +1,11 @@
-// lib/models/finance_state.dart
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:family_finances/models/app_categories.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
-// Serviços
 import '../services/firestore_service.dart';
 import '../services/gemini_service.dart';
 import '../database_helper.dart';
-
-// Modelos de Dados
 import 'expense.dart';
 import 'receipt.dart';
 import 'product.dart';
@@ -18,12 +14,10 @@ import 'expense_category.dart';
 import 'nfce.dart';
 
 class FinanceState with ChangeNotifier {
-  // Serviços
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
   FirestoreService? _firestoreService;
   late GeminiService _geminiService;
 
-  // Subscriptions
   StreamSubscription<List<Expense>>? _expensesSubscription;
   StreamSubscription<List<Receipt>>? _receiptsSubscription;
   StreamSubscription<List<Product>>? _productsSubscription;
@@ -32,36 +26,25 @@ class FinanceState with ChangeNotifier {
   String? _uid;
   bool _isLoading = true;
 
-  // Dados locais (privados)
   List<Expense> _expenses = [];
   List<Receipt> _receipts = [];
   List<Product> _products = [];
   List<ProductCategory> _productCategories = [];
 
-  // Categorias estáticas de despesas (fallback)
-  final List<ExpenseCategory> _expenseCategories = [
-    const ExpenseCategory(name: 'Compras', icon: Icons.shopping_cart),
-    const ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
-    const ExpenseCategory(name: 'Moradia', icon: Icons.home),
-    const ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
-    const ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
-    const ExpenseCategory(name: 'Outros', icon: Icons.category),
-  ];
+  final List<ExpenseCategory> _expenseCategories = AppCategories.expenseCategories;
 
-  // --- Getters ---
   bool get isLoggedIn => _uid != null;
 
-  // Expondo listas (privadas apenas; se futuramente quiser mesclar com "shared", faz-se aqui)
   List<Expense> get expenses {
-    final copy = List<Expense>.from(_expenses);
-    copy.sort((a, b) => b.date.compareTo(a.date));
-    return copy;
+    final c = List<Expense>.from(_expenses);
+    c.sort((a, b) => b.date.compareTo(a.date));
+    return c;
   }
 
   List<Receipt> get receipts {
-    final copy = List<Receipt>.from(_receipts);
-    copy.sort((a, b) => b.date.compareTo(a.date));
-    return copy;
+    final c = List<Receipt>.from(_receipts);
+    c.sort((a, b) => b.date.compareTo(a.date));
+    return c;
   }
 
   List<Product> get shoppingListProducts => _products;
@@ -69,42 +52,34 @@ class FinanceState with ChangeNotifier {
   bool get isLoading => _isLoading;
   List<ExpenseCategory> get expenseCategories => _expenseCategories;
 
-  // --- Inicialização ---
   FinanceState() {
     _geminiService = GeminiService();
-    // Ouvimos alterações de autenticação
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      _handleAuthStateChanged(user);
+    FirebaseAuth.instance.authStateChanges().listen((u) {
+      _handleAuthStateChanged(u);
     });
-    // Checagem inicial
     _handleAuthStateChanged(FirebaseAuth.instance.currentUser);
   }
 
   void _handleAuthStateChanged(User? user) {
-    // evita reloads desnecessários
     if (user != null && _uid != user.uid) {
       _uid = user.uid;
       _initializeCloudData(user.uid);
     } else if (user == null && _uid != null) {
-      // logout
       _uid = null;
       _initializeLocalData();
     } else if (user == null && _uid == null) {
-      // primeiro boot em modo local
       if (_expenses.isEmpty && _receipts.isEmpty && _products.isEmpty) {
         _initializeLocalData();
       }
     }
   }
 
-  // --- Modo Local (Sqflite) ---
   Future<void> _initializeLocalData() async {
     if (!_isLoading) {
       _isLoading = true;
       notifyListeners();
     }
 
-    // Cancela streams da nuvem se existirem
     await _clearCloudSubscriptions();
     _firestoreService = null;
 
@@ -113,8 +88,7 @@ class FinanceState with ChangeNotifier {
       _receipts = await _databaseHelper.getAllReceipts();
       _productCategories = await _databaseHelper.getAllProductCategories();
       _products = await _databaseHelper.getAllProducts();
-    } catch (e) {
-      print("Erro ao carregar dados locais: $e");
+    } catch (_) {
       _expenses = [];
       _receipts = [];
       _productCategories = [];
@@ -125,7 +99,6 @@ class FinanceState with ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Modo Nuvem (Firestore) ---
   void _initializeCloudData(String uid) {
     if (!_isLoading) {
       _isLoading = true;
@@ -136,51 +109,37 @@ class FinanceState with ChangeNotifier {
     _clearCloudSubscriptions();
 
     int streamsToLoad = 4;
-    int streamsLoaded = 0;
+    int loaded = 0;
 
-    void checkLoading() {
-      streamsLoaded++;
-      if (streamsLoaded >= streamsToLoad) {
-        _isLoading = false;
-      }
+    void ok() {
+      loaded++;
+      if (loaded >= streamsToLoad) _isLoading = false;
       notifyListeners();
     }
 
-    // NOTE: usa os nomes de método existentes no seu FirestoreService fornecido
-    _expensesSubscription = _firestoreService!.getExpensesStream().listen((data) {
-      // Caso seus documentos tenham campo 'isShared', e você queira filtrar,
-      // faça aqui. Atualmente assumimos que getExpensesStream devolve só as despesas do usuário.
-      _expenses = data;
-      checkLoading();
-    }, onError: (e) {
-      print("Erro no stream de despesas: $e");
-      checkLoading();
-    });
+    _expensesSubscription =
+        _firestoreService!.getExpensesStream().listen((d) {
+      _expenses = d;
+      ok();
+    }, onError: (_) => ok());
 
-    _receiptsSubscription = _firestoreService!.getReceiptsStream().listen((data) {
-      _receipts = data;
-      checkLoading();
-    }, onError: (e) {
-      print("Erro no stream de receitas: $e");
-      checkLoading();
-    });
+    _receiptsSubscription =
+        _firestoreService!.getReceiptsStream().listen((d) {
+      _receipts = d;
+      ok();
+    }, onError: (_) => ok());
 
-    _productsSubscription = _firestoreService!.getProductsStream().listen((data) {
-      _products = data;
-      checkLoading();
-    }, onError: (e) {
-      print("Erro no stream de produtos: $e");
-      checkLoading();
-    });
+    _productsSubscription =
+        _firestoreService!.getProductsStream().listen((d) {
+      _products = d;
+      ok();
+    }, onError: (_) => ok());
 
-    _productCategoriesSubscription = _firestoreService!.getCategoriesStream().listen((data) {
-      // garante categoria indefinida no topo
-      _productCategories = [ProductCategory.indefinida, ...data];
-      checkLoading();
-    }, onError: (e) {
-      print("Erro no stream de categorias: $e");
-      checkLoading();
-    });
+    _productCategoriesSubscription =
+        _firestoreService!.getCategoriesStream().listen((d) {
+      _productCategories = [ProductCategory.indefinida, ...d];
+      ok();
+    }, onError: (_) => ok());
   }
 
   Future<void> _clearCloudSubscriptions() async {
@@ -188,7 +147,6 @@ class FinanceState with ChangeNotifier {
     await _receiptsSubscription?.cancel();
     await _productsSubscription?.cancel();
     await _productCategoriesSubscription?.cancel();
-
     _expensesSubscription = null;
     _receiptsSubscription = null;
     _productsSubscription = null;
@@ -201,24 +159,21 @@ class FinanceState with ChangeNotifier {
     super.dispose();
   }
 
-  // --- CRUD multipath (local / cloud) ---
-
-  Future<void> addExpense(Expense expense) async {
+  Future<void> addExpense(Expense e) async {
     if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.addExpense(expense);
-      // stream do Firestore irá atualizar a lista
+      await _firestoreService!.addExpense(e);
     } else {
-      final newExpense = await _databaseHelper.createExpense(expense);
-      _expenses.insert(0, newExpense.copyWith(localId: newExpense.localId));
+      final created = await _databaseHelper.createExpense(e);
+      _expenses.insert(0, created.copyWith(localId: created.localId));
       notifyListeners();
     }
   }
 
-  Future<void> updateExpense(Expense expense) async {
+  Future<void> updateExpense(Expense e) async {
     if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.updateExpense(expense);
+      await _firestoreService!.updateExpense(e);
     } else {
-      await _databaseHelper.updateExpense(expense);
+      await _databaseHelper.updateExpense(e);
       await _loadAllDataFromSqlite();
     }
   }
@@ -235,21 +190,21 @@ class FinanceState with ChangeNotifier {
     }
   }
 
-  Future<void> addReceipt(Receipt receipt) async {
+  Future<void> addReceipt(Receipt r) async {
     if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.addReceipt(receipt);
+      await _firestoreService!.addReceipt(r);
     } else {
-      final newReceipt = await _databaseHelper.createReceipt(receipt);
-      _receipts.insert(0, newReceipt.copyWith(localId: newReceipt.localId));
+      final created = await _databaseHelper.createReceipt(r);
+      _receipts.insert(0, created.copyWith(localId: created.localId));
       notifyListeners();
     }
   }
 
-  Future<void> updateReceipt(Receipt receipt) async {
+  Future<void> updateReceipt(Receipt r) async {
     if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.updateReceipt(receipt);
+      await _firestoreService!.updateReceipt(r);
     } else {
-      await _databaseHelper.updateReceipt(receipt);
+      await _databaseHelper.updateReceipt(r);
       await _loadAllDataFromSqlite();
     }
   }
@@ -266,32 +221,32 @@ class FinanceState with ChangeNotifier {
     }
   }
 
-  Future<void> addProduct(Product product) async {
+  Future<void> addProduct(Product p) async {
     if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.addProduct(product);
+      await _firestoreService!.addProduct(p);
     } else {
-      final newProduct = await _databaseHelper.createProduct(product);
-      _products.add(newProduct.copyWith(localId: newProduct.localId));
+      final created = await _databaseHelper.createProduct(p);
+      _products.add(created.copyWith(localId: created.localId));
       _products.sort((a, b) => a.nameLower.compareTo(b.nameLower));
       notifyListeners();
     }
   }
 
-  Future<void> updateProduct(Product product) async {
+  Future<void> updateProduct(Product p) async {
     if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.updateProduct(product);
+      await _firestoreService!.updateProduct(p);
     } else {
-      await _databaseHelper.updateProduct(product);
+      await _databaseHelper.updateProduct(p);
       _products = await _databaseHelper.getAllProducts();
       notifyListeners();
     }
   }
 
-  Future<void> deleteProduct(String productId) async {
+  Future<void> deleteProduct(String id) async {
     if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.deleteProduct(productId);
+      await _firestoreService!.deleteProduct(id);
     } else {
-      final localId = int.tryParse(productId);
+      final localId = int.tryParse(id);
       if (localId == null) return;
       await _databaseHelper.deleteProduct(localId);
       _products.removeWhere((p) => p.localId == localId);
@@ -299,31 +254,29 @@ class FinanceState with ChangeNotifier {
     }
   }
 
-  Future<void> toggleProductChecked(Product product, bool value) async {
-    final updated = product.copyWith(isChecked: value);
+  Future<void> toggleProductChecked(Product p, bool v) async {
+    final updated = p.copyWith(isChecked: v);
     if (isLoggedIn && _firestoreService != null) {
       await _firestoreService!.updateProduct(updated);
     } else {
       await _databaseHelper.updateProduct(updated);
-      final idx = _products.indexWhere((p) => p.localId == updated.localId);
-      if (idx != -1) {
-        _products[idx] = updated;
+      final i = _products.indexWhere((x) => x.localId == updated.localId);
+      if (i != -1) {
+        _products[i] = updated;
         notifyListeners();
       }
     }
   }
 
-  Future<void> addProductCategory(ProductCategory category) async {
+  Future<void> addProductCategory(ProductCategory c) async {
     if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.addProductCategory(category);
+      await _firestoreService!.addProductCategory(c);
     } else {
-      await _databaseHelper.createProductCategory(category);
-      _productCategories.add(category);
+      await _databaseHelper.createProductCategory(c);
+      _productCategories.add(c);
       notifyListeners();
     }
   }
-
-  // --- Utilitários / sincronização local -> cloud (opcional) ---
 
   Future<void> syncLocalDataToFirebase(String newUid) async {
     if (_firestoreService == null || _firestoreService!.uid != newUid) {
@@ -335,25 +288,19 @@ class FinanceState with ChangeNotifier {
     final localCategories = await _databaseHelper.getAllProductCategories();
     final localProducts = await _databaseHelper.getAllProducts();
 
-    // Envia categorias -> produtos -> transações (ordem simples)
-    for (final cat in localCategories) {
-      // evitar reenvio de categorias default se necessário
-      await _firestoreService!.addProductCategory(cat);
+    for (final c in localCategories) {
+      await _firestoreService!.addProductCategory(c);
     }
-
     for (final p in localProducts) {
       await _firestoreService!.addProduct(p);
     }
-
     for (final e in localExpenses) {
       await _firestoreService!.addExpense(e);
     }
-
     for (final r in localReceipts) {
       await _firestoreService!.addReceipt(r);
     }
 
-    // apaga local (opcional)
     await _databaseHelper.deleteAllLocalData();
   }
 
@@ -365,22 +312,22 @@ class FinanceState with ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Saldos ---
-  double get totalReceitas => receipts.fold(0.0, (sum, r) => sum + r.value);
-  double get totalDespesas => expenses.fold(0.0, (sum, e) => sum + e.value);
-  double get totalReceitasAtuais => receipts.where((r) => !r.isFuture).fold(0.0, (sum, r) => sum + r.value);
-  double get totalDespesasAtuais => expenses.where((e) => !e.isFuture).fold(0.0, (sum, e) => sum + e.value);
-  double get saldoAtual => totalReceitasAtuais - totalDespesasAtuais;
+  double get totalReceitas =>
+      receipts.fold(0.0, (s, r) => s + r.value);
 
-  // --- NFC-e processing stub (use sua implementação existente) ---
-  Future<void> processNfceItems(Nfce nota) async {
-    // mantenha sua implementação (chamando GeminiService, classificando, criando produtos/despesas)
-    // aqui chamamos addProduct / addExpense que já cuidam do multiplex.
-    print('processNfceItems called (implemente conforme necessário).');
-  }
+  double get totalDespesas =>
+      expenses.fold(0.0, (s, e) => s + e.value);
 
-  // Força notificação (útil para pull-to-refresh)
-  void forceNotify() {
-    notifyListeners();
-  }
+  double get totalReceitasAtuais =>
+      receipts.where((r) => !r.isFuture).fold(0.0, (s, r) => s + r.value);
+
+  double get totalDespesasAtuais =>
+      expenses.where((e) => !e.isFuture).fold(0.0, (s, e) => s + e.value);
+
+  double get saldoAtual =>
+      totalReceitasAtuais - totalDespesasAtuais;
+
+  Future<void> processNfceItems(Nfce n) async {}
+
+  void forceNotify() => notifyListeners();
 }

@@ -1,4 +1,3 @@
-// lib/database_helper.dart
 import 'dart:async';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
@@ -22,29 +21,27 @@ class DatabaseHelper {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'family_finances.db');
 
-    return await openDatabase(path, version: 1, onCreate: (db, version) async {
-      // expenses
+    return openDatabase(path, version: 1, onCreate: (db, version) async {
       await db.execute('''
         CREATE TABLE expenses (
           localId INTEGER PRIMARY KEY AUTOINCREMENT,
           id TEXT,
           title TEXT,
           value REAL,
-          categoryId TEXT,
-          categoryName TEXT,
+          category_name TEXT,
+          category_icon INTEGER,
           note TEXT,
           date TEXT,
           isRecurrent INTEGER,
-          isInInstallments INTEGER,
-          installmentCount INTEGER,
+          recurrencyId INTEGER,
           recurrencyType INTEGER,
           recurrentIntervalDays INTEGER,
-          isShared INTEGER,
-          sharedFromUid TEXT
+          isInInstallments INTEGER,
+          installmentCount INTEGER,
+          isShared INTEGER
         )
       ''');
 
-      // receipts
       await db.execute('''
         CREATE TABLE receipts (
           localId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,17 +58,17 @@ class DatabaseHelper {
         )
       ''');
 
-      // product categories
       await db.execute('''
         CREATE TABLE productCategories (
           localId INTEGER PRIMARY KEY AUTOINCREMENT,
           id TEXT,
           name TEXT,
-          iconCodePoint INTEGER
+          iconCodePoint INTEGER,
+          iconFontFamily TEXT,
+          defaultPriority INTEGER
         )
       ''');
 
-      // products
       await db.execute('''
         CREATE TABLE products (
           localId INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,36 +83,127 @@ class DatabaseHelper {
     });
   }
 
-  // --- Expenses ---
   Future<Expense> createExpense(Expense expense) async {
     final db = await database;
-    final id = await db.insert('expenses', {
+    final insertedId = await db.insert('expenses', {
       ...expense.toMapForSqlite(),
       'id': expense.id,
+      'isShared': expense.isShared ? 1 : 0,
     });
-    // Retorna com localId preenchido corretamente
-    return expense.copyWith(id: expense.id, localId: id);
+    return expense.copyWith(localId: insertedId);
   }
 
   Future<List<Expense>> getAllExpenses() async {
     final db = await database;
     final rows = await db.query('expenses', orderBy: 'date DESC');
-    return rows.map((r) {
-      // add localId to map for factory
-      final map = Map<String, dynamic>.from(r);
-      map['localId'] = r['localId'];
-      return Expense.fromMapForSqlite(map);
-    }).toList();
+    return rows.map((map) => Expense.fromMapForSqlite(map)).toList();
   }
 
   Future<void> updateExpense(Expense expense) async {
     final db = await database;
-    await db.update('expenses', expense.toMapForSqlite()..['id'] = expense.id, where: 'localId = ?', whereArgs: [expense.localId]);
+    await db.update(
+      'expenses',
+      {
+        ...expense.toMapForSqlite(),
+        'id': expense.id,
+        'isShared': expense.isShared ? 1 : 0,
+      },
+      where: 'localId = ?',
+      whereArgs: [expense.localId],
+    );
   }
 
   Future<void> deleteExpense(int localId) async {
     final db = await database;
     await db.delete('expenses', where: 'localId = ?', whereArgs: [localId]);
+  }
+
+  Future<Receipt> createReceipt(Receipt receipt) async {
+    final db = await database;
+    final insertedId = await db.insert('receipts', {
+      ...receipt.toMapForSqlite(),
+      'id': receipt.id,
+      'categoryId': receipt.category.id,
+      'categoryName': receipt.category.name,
+      'isShared': receipt.isShared ? 1 : 0,
+    });
+    return receipt.copyWith(localId: insertedId);
+  }
+
+  Future<List<Receipt>> getAllReceipts() async {
+    final db = await database;
+    final rows = await db.query('receipts', orderBy: 'date DESC');
+    return rows.map((map) => Receipt.fromMapForSqlite(map)).toList();
+  }
+
+  Future<void> updateReceipt(Receipt receipt) async {
+    final db = await database;
+    await db.update(
+      'receipts',
+      {
+        ...receipt.toMapForSqlite(),
+        'id': receipt.id,
+        'categoryId': receipt.category.id,
+        'categoryName': receipt.category.name,
+        'isShared': receipt.isShared ? 1 : 0,
+      },
+      where: 'localId = ?',
+      whereArgs: [receipt.localId],
+    );
+  }
+
+  Future<void> deleteReceipt(int localId) async {
+    final db = await database;
+    await db.delete('receipts', where: 'localId = ?', whereArgs: [localId]);
+  }
+
+  Future<List<ProductCategory>> getAllProductCategories() async {
+    final db = await database;
+    final rows = await db.query('productCategories');
+    return rows.map((map) => ProductCategory.fromMapForSqlite(map)).toList();
+  }
+
+  Future<void> createProductCategory(ProductCategory category) async {
+    final db = await database;
+    await db.insert('productCategories', category.toMapForSqlite());
+  }
+
+  Future<Product> createProduct(Product product) async {
+    final db = await database;
+    final insertedId = await db.insert('products', {
+      ...product.toMapForSqlite(),
+      'id': product.id,
+      'optionsJson': product.options.map((o) => o.toMap()).toList().toString(),
+    });
+    return product.copyWith(localId: insertedId);
+  }
+
+  Future<List<Product>> getAllProducts() async {
+    final db = await database;
+    final rows = await db.query('products', orderBy: 'name COLLATE NOCASE ASC');
+    return rows.map((map) {
+      final category = ProductCategory.indefinida;
+      return Product.fromMapForSqlite(map, category);
+    }).toList();
+  }
+
+  Future<void> updateProduct(Product product) async {
+    final db = await database;
+    await db.update(
+      'products',
+      {
+        ...product.toMapForSqlite(),
+        'id': product.id,
+        'optionsJson': product.options.map((o) => o.toMap()).toList().toString(),
+      },
+      where: 'localId = ?',
+      whereArgs: [product.localId],
+    );
+  }
+
+  Future<void> deleteProduct(int localId) async {
+    final db = await database;
+    await db.delete('products', where: 'localId = ?', whereArgs: [localId]);
   }
 
   Future<void> deleteAllLocalData() async {
@@ -124,83 +212,5 @@ class DatabaseHelper {
     await db.delete('receipts');
     await db.delete('products');
     await db.delete('productCategories');
-  }
-
-  // --- Receipts ---
-  Future<Receipt> createReceipt(Receipt receipt) async {
-    final db = await database;
-    final id = await db.insert('receipts', {
-      ...receipt.toMapForSqlite(),
-      'id': receipt.id,
-    });
-    return receipt.copyWith(id: receipt.id, localId: id);
-  }
-
-  Future<List<Receipt>> getAllReceipts() async {
-    final db = await database;
-    final rows = await db.query('receipts', orderBy: 'date DESC');
-    return rows.map((r) {
-      final map = Map<String, dynamic>.from(r);
-      map['localId'] = r['localId'];
-      return Receipt.fromMapForSqlite(map);
-    }).toList();
-  }
-
-  Future<void> updateReceipt(Receipt receipt) async {
-    final db = await database;
-    await db.update('receipts', receipt.toMapForSqlite()..['id'] = receipt.id, where: 'localId = ?', whereArgs: [receipt.localId]);
-  }
-
-  Future<void> deleteReceipt(int localId) async {
-    final db = await database;
-    await db.delete('receipts', where: 'localId = ?', whereArgs: [localId]);
-  }
-
-  // --- Product Categories ---
-  Future<List<ProductCategory>> getAllProductCategories() async {
-    final db = await database;
-    final rows = await db.query('productCategories');
-    return rows.map((r) {
-      return ProductCategory.fromMap({...r, 'id': r['id']?.toString()});
-    }).toList();
-  }
-
-  Future<void> createProductCategory(ProductCategory category) async {
-    final db = await database;
-    await db.insert('productCategories', {
-      'id': category.id,
-      'name': category.name,
-      'iconCodePoint': category.icon.codePoint,
-    });
-  }
-
-  // --- Products ---
-  Future<Product> createProduct(Product product) async {
-    final db = await database;
-    final id = await db.insert('products', {
-      ...product.toMapForSqlite(),
-      'id': product.id,
-    });
-    return product.copyWith(id: product.id, localId: id);
-  }
-
-  Future<List<Product>> getAllProducts() async {
-    final db = await database;
-    final rows = await db.query('products', orderBy: 'name COLLATE NOCASE ASC');
-    // Category resolution should be done by caller (we can't guess categories here)
-    return rows.map((r) {
-      final map = Map<String, dynamic>.from(r);
-      return Product.fromMapForSqlite(map, ProductCategory.indefinida);
-    }).toList();
-  }
-
-  Future<void> updateProduct(Product product) async {
-    final db = await database;
-    await db.update('products', product.toMapForSqlite()..['id'] = product.id, where: 'localId = ?', whereArgs: [product.localId]);
-  }
-
-  Future<void> deleteProduct(int localId) async {
-    final db = await database;
-    await db.delete('products', where: 'localId = ?', whereArgs: [localId]);
   }
 }

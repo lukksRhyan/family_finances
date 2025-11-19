@@ -1,179 +1,136 @@
-// lib/models/expense.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'expense_category.dart';
 
 class Expense {
-  final String? id; // Firestore document ID (nullable)
-  final int? localId; // SQLite autoincrement ID (nullable)
+  final String id;
   final String title;
   final double value;
-  final ExpenseCategory category;
-  final String note;
+  final String categoryId;
+  final String categoryName;
+  final String? note;
   final DateTime date;
   final bool isRecurrent;
-  final int? recurrencyId;
+  final bool isInInstallments;
+  final int installmentCount;
   final int? recurrencyType;
   final int? recurrentIntervalDays;
-  final bool isInInstallments;
-  final int? installmentCount;
-  final bool isShared;
-
-  Expense({
-    this.id,
-    this.localId,
-    required this.title,
-    required this.value,
-    required this.category,
-    required this.note,
-    required this.date,
-    required this.isRecurrent,
-    this.recurrencyId,
-    this.recurrencyType,
-    this.recurrentIntervalDays,
-    required this.isInInstallments,
-    this.installmentCount,
-    this.isShared = false,
-  });
+  final int? localId;
 
   bool get isFuture => date.isAfter(DateTime.now());
 
-  /// Cria a partir de um mapa do Firestore. `id` é o documentId passado separadamente.
-  static Expense fromMap(Map<String, dynamic> map, {String? id}) {
-    return Expense(
-      id: id,
-      localId: null,
-      title: map['title'] ?? '',
-      value: (map['value'] is num) ? (map['value'] as num).toDouble() : 0.0,
-      category: ExpenseCategory(
-        name: map['category_name'] ?? 'Outros',
-        icon: IconData(
-          (map['category_icon'] is int) ? map['category_icon'] as int : Icons.category.codePoint,
-          fontFamily: 'MaterialIcons',
-        ),
-      ),
-      note: map['note'] ?? '',
-      date: (map['date'] is Timestamp)
-          ? (map['date'] as Timestamp).toDate()
-          : DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
-      isRecurrent: map['is_recurrent'] ?? map['isRecurrent'] ?? false,
-      recurrencyId: map['recurrency_id'] ?? map['recurrencyId'],
-      recurrencyType: map['recurrency_type'] ?? map['recurrencyType'],
-      recurrentIntervalDays: map['recurrent_interval_days'] ?? map['recurrentIntervalDays'],
-      isInInstallments: map['is_in_installments'] ?? map['isInInstallments'] ?? false,
-      installmentCount: map['installment_count'] ?? map['installmentCount'],
-      isShared: map['isShared'] ?? false,
-    );
-  }
-
-  /// Map usado para enviar para o Firestore
-  Map<String, dynamic> toMap() {
-    return {
-      'title': title,
-      'value': value,
-      'category_name': category.name,
-      'category_icon': category.icon.codePoint,
-      'note': note,
-      'date': Timestamp.fromDate(date),
-      'is_recurrent': isRecurrent,
-      'recurrency_id': recurrencyId,
-      'recurrency_type': recurrencyType,
-      'recurrent_interval_days': recurrentIntervalDays,
-      'is_in_installments': isInInstallments,
-      'installment_count': installmentCount,
-      'isShared': isShared,
-    };
-  }
-
-  /// Map para armazenar no SQLite (use as chaves existentes no schema)
-  Map<String, dynamic> toMapForSqlite() {
-    return {
-      // 'id' aqui é o Firestore ID (nullable) — não confundir com localId
-      'id': id,
-      'title': title,
-      'value': value,
-      'categoryId': null, // se tiver category.id, coloque aqui; manter null se não houver
-      'categoryName': category.name,
-      'categoryIcon': category.icon.codePoint,
-      'note': note,
-      'date': date.toIso8601String(),
-      'isRecurrent': isRecurrent ? 1 : 0,
-      'recurrencyId': recurrencyId,
-      'recurrencyType': recurrencyType,
-      'recurrentIntervalDays': recurrentIntervalDays,
-      'isInInstallments': isInInstallments ? 1 : 0,
-      'installmentCount': installmentCount,
-      'isShared': isShared ? 1 : 0,
-      'sharedFromUid': null,
-    };
-  }
-
-  /// Constrói a partir de um row do SQLite (Map resultante do db.query)
-  factory Expense.fromMapForSqlite(Map<String, dynamic> map) {
-    // map provavel: {'localId': 1, 'id': 'fireId', 'title': ..., 'date': '2023-...'}
-    final localId = map['localId'] is int
-        ? map['localId'] as int
-        : (map['localId'] != null ? int.tryParse(map['localId'].toString()) : null);
-
-    return Expense(
-      id: map['id']?.toString(),
-      localId: localId,
-      title: map['title']?.toString() ?? '',
-      value: (map['value'] is num) ? (map['value'] as num).toDouble() : double.tryParse(map['value']?.toString() ?? '') ?? 0.0,
-      category: ExpenseCategory(
-        name: map['categoryName']?.toString() ?? 'Outros',
-        icon: IconData(
-          (map['categoryIcon'] is int) ? map['categoryIcon'] as int : Icons.category.codePoint,
-          fontFamily: 'MaterialIcons',
-        ),
-      ),
-      note: map['note']?.toString() ?? '',
-      date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
-      isRecurrent: (map['isRecurrent'] ?? 0) == 1,
-      recurrencyId: map['recurrencyId'] is int ? map['recurrencyId'] as int : (map['recurrencyId'] != null ? int.tryParse(map['recurrencyId'].toString()) : null),
-      recurrencyType: map['recurrencyType'] is int ? map['recurrencyType'] as int : (map['recurrencyType'] != null ? int.tryParse(map['recurrencyType'].toString()) : null),
-      recurrentIntervalDays: map['recurrentIntervalDays'] is int ? map['recurrentIntervalDays'] as int : (map['recurrentIntervalDays'] != null ? int.tryParse(map['recurrentIntervalDays'].toString()) : null),
-      isInInstallments: (map['isInInstallments'] ?? 0) == 1,
-      installmentCount: map['installmentCount'] is int ? map['installmentCount'] as int : (map['installmentCount'] != null ? int.tryParse(map['installmentCount'].toString()) : null),
-      isShared: (map['isShared'] ?? 0) == 1,
-    );
-  }
-
-  Map<String, dynamic> toMapForFirestore() => toMap();
-
-  factory Expense.fromMapFromFirestore(Map<String, dynamic> map, String id) => fromMap(map, id: id);
+  Expense({
+    required this.id,
+    required this.title,
+    required this.value,
+    required this.categoryId,
+    required this.categoryName,
+    this.note,
+    required this.date,
+    this.isRecurrent = false,
+    this.isInInstallments = false,
+    this.installmentCount = 1,
+    this.recurrencyType,
+    this.recurrentIntervalDays,
+    this.localId,
+  });
 
   Expense copyWith({
     String? id,
-    int? localId,
     String? title,
     double? value,
-    ExpenseCategory? category,
+    String? categoryId,
+    String? categoryName,
     String? note,
     DateTime? date,
     bool? isRecurrent,
-    int? recurrencyId,
-    int? recurrencyType,
-    int? recurrentIntervalDays,
     bool? isInInstallments,
     int? installmentCount,
-    bool? isShared,
+    int? recurrencyType,
+    int? recurrentIntervalDays,
+    int? localId,
   }) {
     return Expense(
       id: id ?? this.id,
-      localId: localId ?? this.localId,
       title: title ?? this.title,
       value: value ?? this.value,
-      category: category ?? this.category,
+      categoryId: categoryId ?? this.categoryId,
+      categoryName: categoryName ?? this.categoryName,
       note: note ?? this.note,
       date: date ?? this.date,
       isRecurrent: isRecurrent ?? this.isRecurrent,
-      recurrencyId: recurrencyId ?? this.recurrencyId,
-      recurrencyType: recurrencyType ?? this.recurrencyType,
-      recurrentIntervalDays: recurrentIntervalDays ?? this.recurrentIntervalDays,
       isInInstallments: isInInstallments ?? this.isInInstallments,
       installmentCount: installmentCount ?? this.installmentCount,
-      isShared: isShared ?? this.isShared,
+      recurrencyType: recurrencyType ?? this.recurrencyType,
+      recurrentIntervalDays:
+          recurrentIntervalDays ?? this.recurrentIntervalDays,
+      localId: localId ?? this.localId,
+    );
+  }
+
+  Map<String, dynamic> toMapForFirestore() {
+    return {
+      'title': title,
+      'value': value,
+      'categoryId': categoryId,
+      'categoryName': categoryName,
+      'note': note,
+      'date': Timestamp.fromDate(date),
+      'isRecurrent': isRecurrent,
+      'isInInstallments': isInInstallments,
+      'installmentCount': installmentCount,
+      'recurrencyType': recurrencyType,
+      'recurrentIntervalDays': recurrentIntervalDays,
+    };
+  }
+
+  factory Expense.fromMapFromFirestore(Map<String, dynamic> map, String id) {
+    return Expense(
+      id: id,
+      title: map['title'],
+      value: (map['value'] as num).toDouble(),
+      categoryId: map['categoryId'],
+      categoryName: map['categoryName'],
+      note: map['note'],
+      date: (map['date'] as Timestamp).toDate(),
+      isRecurrent: map['isRecurrent'] ?? false,
+      isInInstallments: map['isInInstallments'] ?? false,
+      installmentCount: map['installmentCount'] ?? 1,
+      recurrencyType: map['recurrencyType'],
+      recurrentIntervalDays: map['recurrentIntervalDays'],
+    );
+  }
+
+  Map<String, dynamic> toMapForSqlite() {
+    return {
+      'id': id,
+      'title': title,
+      'value': value,
+      'categoryId': categoryId,
+      'categoryName': categoryName,
+      'note': note,
+      'date': date.toIso8601String(),
+      'isRecurrent': isRecurrent ? 1 : 0,
+      'isInInstallments': isInInstallments ? 1 : 0,
+      'installmentCount': installmentCount,
+      'recurrencyType': recurrencyType,
+      'recurrentIntervalDays': recurrentIntervalDays,
+    };
+  }
+
+  factory Expense.fromMapForSqlite(Map<String, dynamic> map) {
+    return Expense(
+      id: map['id'],
+      title: map['title'],
+      value: (map['value'] as num).toDouble(),
+      categoryId: map['categoryId'],
+      categoryName: map['categoryName'],
+      note: map['note'],
+      date: DateTime.parse(map['date']),
+      isRecurrent: (map['isRecurrent'] ?? 0) == 1,
+      isInInstallments: (map['isInInstallments'] ?? 0) == 1,
+      installmentCount: map['installmentCount'] ?? 1,
+      recurrencyType: map['recurrencyType'],
+      recurrentIntervalDays: map['recurrentIntervalDays'],
+      localId: map['localId'],
     );
   }
 }
