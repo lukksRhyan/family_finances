@@ -12,7 +12,20 @@ class ProductCategory {
     required this.icon,
     this.priority = 3,
   });
-
+  static List<ProductCategory> standardCategories = [
+    ProductCategory(id: 'food', name: 'Comida', icon: Icons.fastfood),
+    ProductCategory(id: 'home', name: 'Moradia', icon: Icons.home),
+    ProductCategory(id: 'shopping', name: 'Compras', icon: Icons.shopping_cart),
+    ProductCategory(id: 'education', name: 'Educação', icon: Icons.school),
+    ProductCategory(id: 'entertainment', name: 'Entretenimento', icon: Icons.movie),
+        ProductCategory(id: 'hygiene', name: 'Higiene', icon: Icons.clean_hands),
+    ProductCategory(id: 'pets', name: 'Pets', icon: Icons.pets),
+    ProductCategory(id: 'transport', name: 'Transporte', icon: Icons.directions_car),
+    ProductCategory(id: 'health', name: 'Saúde', icon: Icons.local_hospital),
+    ProductCategory(id: 'leisure', name: 'Lazer', icon: Icons.sports_esports),
+    ProductCategory(id: 'clothes', name: 'Vestuário', icon: Icons.checkroom),
+    ProductCategory(id: 'others', name: 'Outros', icon: Icons.more_horiz),
+  ];
   Map<String, dynamic> toMapForFirestore() {
     return {
       'name': name,

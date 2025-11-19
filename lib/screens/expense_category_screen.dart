@@ -13,12 +13,7 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
   final TextEditingController _valueController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
-  final List<ExpenseCategory> _basic_categories = [
-    ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
-    ExpenseCategory(name: 'Moradia', icon: Icons.home),
-    ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
-    ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
-  ];
+  final List<ExpenseCategory> _basic_categories = [...ExpenseCategory.standardCategories];
   final List<ExpenseCategory> _custom_categories = [];
   ExpenseCategory? _selectedCategory;
 
@@ -81,7 +76,9 @@ class _AddExpenseWithCategoryScreenState extends State<AddExpenseWithCategoryScr
             ElevatedButton(
               onPressed: () {
                 if (nameController.text.isNotEmpty && selectedIcon != null) {
-                  _addCategory(ExpenseCategory(name: nameController.text, icon: selectedIcon!));
+                  _addCategory(ExpenseCategory(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    name: nameController.text, icon: selectedIcon!));
                   Navigator.of(context).pop();
                 }
               },

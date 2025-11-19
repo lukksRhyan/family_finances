@@ -65,7 +65,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (widget.expenseToEdit != null) {
       _titleController.text = widget.expenseToEdit!.title;
       _valueController.text = widget.expenseToEdit!.value.toString();
-      _noteController.text = widget.expenseToEdit!.note;
+      _noteController.text = widget.expenseToEdit!.note!;
       _selectedDate = widget.expenseToEdit!.date;
       _isExpense = true;
       _selectedCategory = widget.expenseToEdit!.category;
@@ -225,7 +225,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   if (_isExpense) {
                     // Lógica para despesa (privada ou compartilhada)
                     final newOrUpdatedExpense = Expense(
-                      id: widget.expenseToEdit?.id,
+                      id: widget.expenseToEdit!.id,
                       title: title,
                       value: value,
                       category: category!,
@@ -244,7 +244,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   } else {
                     // Lógica para receita (privada ou compartilhada)
                     final newOrUpdatedReceipt = Receipt(
-                      id: widget.receiptToEdit?.id,
+                      id: widget.receiptToEdit!.id,
                       title: title,
                       value: value,
                       date: _selectedDate,

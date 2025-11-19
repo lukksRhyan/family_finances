@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:family_finances/models/app_categories.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/firestore_service.dart';
@@ -17,7 +15,7 @@ class FinanceState with ChangeNotifier {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
   FirestoreService? _firestoreService;
   late GeminiService _geminiService;
-
+  String _currentPartnerId;
   StreamSubscription<List<Expense>>? _expensesSubscription;
   StreamSubscription<List<Receipt>>? _receiptsSubscription;
   StreamSubscription<List<Product>>? _productsSubscription;
@@ -31,7 +29,7 @@ class FinanceState with ChangeNotifier {
   List<Product> _products = [];
   List<ProductCategory> _productCategories = [];
 
-  final List<ExpenseCategory> _expenseCategories = AppCategories.expenseCategories;
+  final List<ExpenseCategory> _expenseCategories = ExpenseCategory.standardCategories;
 
   bool get isLoggedIn => _uid != null;
 
@@ -59,7 +57,6 @@ class FinanceState with ChangeNotifier {
     });
     _handleAuthStateChanged(FirebaseAuth.instance.currentUser);
   }
-
   void _handleAuthStateChanged(User? user) {
     if (user != null && _uid != user.uid) {
       _uid = user.uid;

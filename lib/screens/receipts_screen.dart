@@ -45,10 +45,11 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                 if (_titleController.text.isNotEmpty &&
                     _valueController.text.isNotEmpty) {
                   final receipt = Receipt(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
                     title: _titleController.text,
                     value: double.tryParse(_valueController.text.replaceAll(',', '.')) ?? 0,
                     date: _selectedDate,
-                    category: ReceiptCategory(name: 'Outros', icon: Icons.category),
+
                     isRecurrent: false,
                   );
                   Provider.of<FinanceState>(context, listen: false).addReceipt(receipt);

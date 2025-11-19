@@ -1,14 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:family_finances/models/expense_category.dart';
 
 class Expense {
   final String id;
   final String title;
   final double value;
-  final String categoryId;
-  final String categoryName;
+  final ExpenseCategory category;
   final String? note;
   final DateTime date;
   final bool isRecurrent;
+  final bool isShared;
   final bool isInInstallments;
   final int installmentCount;
   final int? recurrencyType;
@@ -21,11 +22,11 @@ class Expense {
     required this.id,
     required this.title,
     required this.value,
-    required this.categoryId,
-    required this.categoryName,
+    required this.category,
     this.note,
     required this.date,
     this.isRecurrent = false,
+    this.isShared = false,
     this.isInInstallments = false,
     this.installmentCount = 1,
     this.recurrencyType,
@@ -37,8 +38,7 @@ class Expense {
     String? id,
     String? title,
     double? value,
-    String? categoryId,
-    String? categoryName,
+    ExpenseCategory? category,
     String? note,
     DateTime? date,
     bool? isRecurrent,
@@ -52,8 +52,7 @@ class Expense {
       id: id ?? this.id,
       title: title ?? this.title,
       value: value ?? this.value,
-      categoryId: categoryId ?? this.categoryId,
-      categoryName: categoryName ?? this.categoryName,
+      category: category ?? this.category,
       note: note ?? this.note,
       date: date ?? this.date,
       isRecurrent: isRecurrent ?? this.isRecurrent,
@@ -70,11 +69,11 @@ class Expense {
     return {
       'title': title,
       'value': value,
-      'categoryId': categoryId,
-      'categoryName': categoryName,
+      'category': category,
       'note': note,
       'date': Timestamp.fromDate(date),
       'isRecurrent': isRecurrent,
+      'isShared': isShared,
       'isInInstallments': isInInstallments,
       'installmentCount': installmentCount,
       'recurrencyType': recurrencyType,
@@ -87,11 +86,11 @@ class Expense {
       id: id,
       title: map['title'],
       value: (map['value'] as num).toDouble(),
-      categoryId: map['categoryId'],
-      categoryName: map['categoryName'],
+      category: ExpenseCategory.fromMapFromFirestore(map['category']),
       note: map['note'],
       date: (map['date'] as Timestamp).toDate(),
       isRecurrent: map['isRecurrent'] ?? false,
+      isShared: map['isShared'] ?? false,
       isInInstallments: map['isInInstallments'] ?? false,
       installmentCount: map['installmentCount'] ?? 1,
       recurrencyType: map['recurrencyType'],
@@ -104,11 +103,11 @@ class Expense {
       'id': id,
       'title': title,
       'value': value,
-      'categoryId': categoryId,
-      'categoryName': categoryName,
+      'category': category.toMapForSqlite(),
       'note': note,
       'date': date.toIso8601String(),
       'isRecurrent': isRecurrent ? 1 : 0,
+      'isShared': isShared ? 1 : 0,
       'isInInstallments': isInInstallments ? 1 : 0,
       'installmentCount': installmentCount,
       'recurrencyType': recurrencyType,
@@ -121,11 +120,11 @@ class Expense {
       id: map['id'],
       title: map['title'],
       value: (map['value'] as num).toDouble(),
-      categoryId: map['categoryId'],
-      categoryName: map['categoryName'],
+      category: ExpenseCategory.fromMapForSqlite(map['category']),
       note: map['note'],
       date: DateTime.parse(map['date']),
       isRecurrent: (map['isRecurrent'] ?? 0) == 1,
+      isShared: (map['isShared'] ?? 0) == 1,
       isInInstallments: (map['isInInstallments'] ?? 0) == 1,
       installmentCount: map['installmentCount'] ?? 1,
       recurrencyType: map['recurrencyType'],
