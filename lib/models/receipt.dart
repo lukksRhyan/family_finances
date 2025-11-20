@@ -63,7 +63,6 @@ class Receipt {
     return {
       'title': title,
       'value': value,
-      // Store the Firestore-friendly Timestamp
       'date': Timestamp.fromDate(date),
       'isRecurrent': isRecurrent,
       'recurrencyType': recurrencyType,
@@ -97,6 +96,19 @@ class Receipt {
       parsedDate = DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now();
     }
 
+    // --- CORREÇÃO AQUI: Verificação de segurança para a categoria ---
+    ReceiptCategory parsedCategory;
+    try {
+      if (map['category'] != null && map['category'] is Map) {
+        parsedCategory = ReceiptCategory.fromMapFromFirestore(Map<String, dynamic>.from(map['category']));
+      } else {
+        parsedCategory = ReceiptCategory.defaults[0];
+      }
+    } catch (e) {
+      parsedCategory = ReceiptCategory.defaults[0];
+    }
+    // ----------------------------------------------------------------
+
     return Receipt(
       id: id,
       localId: null,
@@ -107,7 +119,7 @@ class Receipt {
       recurrencyType: map['recurrencyType'] as int?,
       isShared: map['isShared'] ?? false,
       sharedFromUid: map['sharedFromUid']?.toString(),
-      category: ReceiptCategory.fromMapFromFirestore(map['category']),
+      category: parsedCategory, // Usa a variável tratada
       note: map['note']
     );
   }
@@ -127,7 +139,7 @@ class Receipt {
       recurrencyType: map['recurrencyType'] is int ? map['recurrencyType'] as int : (map['recurrencyType'] != null ? int.tryParse(map['recurrencyType'].toString()) : null),
       isShared: (map['isShared'] ?? 0) == 1,
       sharedFromUid: map['sharedFromUid']?.toString(),
-      category: ReceiptCategory.fromMapForSqlite(map['category']),
+      category: ReceiptCategory.fromMapForSqlite(map['category'] ?? map),
       note: map['note']
     );
   }

@@ -40,12 +40,27 @@ class Expense {
 
   /// Cria a partir de um mapa do Firestore. `id` é o documentId passado separadamente.
   static Expense fromMap(Map<String, dynamic> map, {String? id}) {
+    
+    // --- CORREÇÃO AQUI: Verificação de segurança para a categoria ---
+    ExpenseCategory parsedCategory;
+    try {
+      if (map['category'] != null && map['category'] is Map) {
+        parsedCategory = ExpenseCategory.fromMapFromFirestore(Map<String, dynamic>.from(map['category']));
+      } else {
+        // Se for null ou inválido, usa a categoria padrão (Outros)
+        parsedCategory = ExpenseCategory.defaults[0]; 
+      }
+    } catch (e) {
+      parsedCategory = ExpenseCategory.defaults[0];
+    }
+    // ----------------------------------------------------------------
+
     return Expense(
       id: id,
       localId: null,
       title: map['title'] ?? '',
       value: (map['value'] is num) ? (map['value'] as num).toDouble() : 0.0,
-      category:ExpenseCategory.fromMapFromFirestore(map['category']),
+      category: parsedCategory, // Usa a variável tratada acima
       note: map['note'] ?? '',
       date: (map['date'] is Timestamp)
           ? (map['date'] as Timestamp).toDate()
@@ -65,7 +80,7 @@ class Expense {
     return {
       'title': title,
       'value': value,
-      'category':category.toMapForFirestore(),
+      'category': category.toMapForFirestore(),
       'note': note,
       'date': Timestamp.fromDate(date),
       'is_recurrent': isRecurrent,
@@ -85,7 +100,7 @@ class Expense {
       'id': id,
       'title': title,
       'value': value,
-      'category':category.toMapForSqlite(),
+      'category': category.toMapForSqlite(), // Isso pode precisar de ajuste dependendo de como o SQLite salva
       'note': note,
       'date': date.toIso8601String(),
       'isRecurrent': isRecurrent ? 1 : 0,
@@ -110,7 +125,8 @@ class Expense {
       localId: localId,
       title: map['title']?.toString() ?? '',
       value: (map['value'] is num) ? (map['value'] as num).toDouble() : double.tryParse(map['value']?.toString() ?? '') ?? 0.0,
-      category: ExpenseCategory.fromMapForSqlite(map['category']),
+      // Assumindo que o SQLite retorna os campos da categoria ou um join
+      category: ExpenseCategory.fromMapForSqlite(map['category'] ?? map), 
       note: map['note']?.toString() ?? '',
       date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
       isRecurrent: (map['isRecurrent'] ?? 0) == 1,

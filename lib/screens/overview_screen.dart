@@ -8,6 +8,8 @@ import '../models/receipt.dart';
 
 import '../styles/app_colors.dart';
 import 'add_transaction_screen.dart';
+// 1. Importar a tela de configurações
+import 'settings_screen.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
@@ -18,6 +20,9 @@ class OverviewScreen extends StatefulWidget {
 
 class _OverviewScreenState extends State<OverviewScreen> {
   String _filter = "all";
+  
+  // 2. Criar a chave para controlar o Scaffold e abrir a gaveta
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
@@ -40,12 +45,31 @@ class _OverviewScreenState extends State<OverviewScreen> {
     final balance = totalReceipts - totalExpenses;
 
     return Scaffold(
+      key: _scaffoldKey, // 3. Atribuir a chave ao Scaffold
       backgroundColor: AppColors.secondary,
+      
+      // 4. Definir o endDrawer (Gaveta da direita)
+      endDrawer: const SizedBox(
+        // Define uma largura para a gaveta não ocupar 100% da tela
+        width: 300, 
+        child: SettingsScreen(), 
+      ),
+
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.onPrimary,
         title: const Text("Visão Geral"),
         centerTitle: true,
+        // 5. Adicionar o botão de ação para abrir a gaveta
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // Abre a gaveta da direita (endDrawer)
+              _scaffoldKey.currentState?.openEndDrawer();
+            },
+          ),
+        ],
       ),
 
       floatingActionButton: FloatingActionButton.extended(

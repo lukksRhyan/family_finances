@@ -11,6 +11,10 @@ import '../models/receipt.dart';
 import '../models/expense_category.dart';
 import '../models/receipt_category.dart';
 
+// Imports adicionados para a funcionalidade de QR Code
+import 'qr_code_scanner_screen.dart';
+import '../services/nfce_service.dart';
+
 enum RecurrencyType { monthly, weekly, custom }
 
 class AddTransactionScreen extends StatefulWidget {
@@ -39,6 +43,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _isInInstallments = false;
   bool _isRecurrent = false;
   bool _isShared = false;
+  
+  // Variável para controlar o loading da leitura da nota
+  bool _isLoadingNfce = false;
 
   RecurrencyType? _recurrencyType;
   DateTime _selectedDate = DateTime.now();
@@ -98,7 +105,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _titleController.text = r.title;
       _valueController.text = r.value.toString();
       _selectedDate = r.date;
-      _noteController.text = r.note!;
+      _noteController.text = r.note ?? "";
       _isRecurrent = r.isRecurrent;
     }
   }
@@ -122,7 +129,67 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     final result = count > 0 ? (total / count) : 0;
     _installmentValueController.text = result.toStringAsFixed(2);
-    setState(() {});
+    // setState não é necessário aqui se for só para atualizar o controller, 
+    // mas se afetar UI reativa, mantenha.
+    if (mounted) setState(() {});
+  }
+
+  // ===============================================
+  // LÓGICA DE LEITURA DE NFC-E
+  // ===============================================
+  Future<void> _scanAndLoadNfce() async {
+    // 1. Navega para a tela de scanner e aguarda o resultado (URL)
+    final String? url = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const QRCodeScannerScreen()),
+    );
+
+    if (url == null || url.isEmpty) return;
+
+    setState(() {
+      _isLoadingNfce = true;
+    });
+
+    try {
+      // 2. Chama o serviço para processar a URL
+      final nfceService = NfceService();
+      final nfceData = await nfceService.fetchAndParseNfce(url);
+
+      // 3. Atualiza os campos da tela com os dados da nota
+      setState(() {
+        _titleController.text = nfceData.storeName;
+        _valueController.text = nfceData.totalValue.toStringAsFixed(2);
+        _selectedDate = nfceData.date.toDate();
+        
+        // Tenta categorizar automaticamente como "Compras" ou "Comida" se possível
+        // ou mantém a seleção atual
+        if (_selectedCategory == null) {
+             final lowerName = nfceData.storeName.toLowerCase();
+             if (lowerName.contains("mercado") || lowerName.contains("atacad") || lowerName.contains("super")) {
+                _selectedCategory = _categories.firstWhere((c) => c.name == "Compras", orElse: () => _categories.last);
+             } else if (lowerName.contains("restaurante") || lowerName.contains("lanchonete")) {
+                _selectedCategory = _categories.firstWhere((c) => c.name == "Comida", orElse: () => _categories.last);
+             }
+        }
+
+        // Preenche a nota com os itens para referência
+        final itemsList = nfceData.items.map((i) => "- ${i.name} (${i.quantity}x)").join("\n");
+        _noteController.text = "Importado via NFC-e:\n$itemsList";
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Nota importada com sucesso!")),
+      );
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro ao ler nota: $e")),
+      );
+    } finally {
+      setState(() {
+        _isLoadingNfce = false;
+      });
+    }
   }
 
   @override
@@ -143,7 +210,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         ),
       ),
 
-      body: SingleChildScrollView(
+      body: _isLoadingNfce 
+        ? const Center(child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text("Importando dados da nota fiscal..."),
+            ],
+          ))
+        : SingleChildScrollView(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +257,32 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // =======================================================
+            // BOTÃO DE QR CODE (Aparece apenas para Despesas)
+            // =======================================================
+            if (_isExpense) 
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: ElevatedButton.icon(
+                    onPressed: _scanAndLoadNfce,
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text("Ler NFC-e (QR Code)"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black87,
+                      elevation: 2,
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
             _buildInput("Título", "Ex: Mercado", _titleController),
             const SizedBox(height: 16),
             _buildInput("Valor", "0,00", _valueController, keyboard: TextInputType.number),
@@ -214,13 +315,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   // ===============================================
-  // INPUT MODERNO (VERSION A)
+  // INPUT MODERNO
   // ===============================================
   Widget _buildInput(
     String label,
     String hint,
-    TextEditingController controller, {
-    int maxLines = 1,
+    TextEditingController controller, {int maxLines = 1,
     TextInputType keyboard = TextInputType.text,
   }) {
     return Column(
@@ -235,7 +335,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         TextField(
           controller: controller,
           maxLines: maxLines,
-          keyboardType: keyboard,
+          keyboardType:keyboard ,
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
@@ -491,6 +591,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         if (_titleController.text.isEmpty ||
             _valueController.text.isEmpty ||
             (_isExpense && _selectedCategory == null)) {
+          
+          // Feedback se faltar dados
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Preencha os campos obrigatórios (Título, Valor, Categoria)")),
+          );
           return;
         }
 
@@ -538,7 +643,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               : await state.updateReceipt(rec);
         }
 
-        Navigator.pop(context);
+        if (mounted) Navigator.pop(context);
       },
       child: const Text("Salvar", style: TextStyle(fontSize: 18)),
     );

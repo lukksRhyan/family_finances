@@ -1,0 +1,28 @@
+I/VRI[MainActivity]@3e78383( 9614): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@3e78383
+E/flutter ( 9614): [ERROR:flutter/runtime/dart_vm_initializer.cc(40)] Unhandled Exception: type 'Null' is not a subtype of type 'Map<String, dynamic>'
+E/flutter ( 9614): #0      Expense.fromMap (package:family_finances/models/expense.dart:48:56)
+E/flutter ( 9614): #1      new Expense.fromMapFromFirestore (package:family_finances/models/expense.dart:128:80)    
+E/flutter ( 9614): #2      FirestoreService.getExpensesStream.<anonymous closure>.<anonymous closure> (package:family_finances/services/firestore_service.dart:48:30)
+E/flutter ( 9614): #3      MappedListIterable.elementAt (dart:_internal/iterable.dart:442:31)
+E/flutter ( 9614): #4      ListIterator.moveNext (dart:_internal/iterable.dart:371:26)
+E/flutter ( 9614): #5      new _GrowableList._ofEfficientLengthIterable (dart:core-patch/growable_array.dart:194:27)E/flutter ( 9614): #6      new _GrowableList.of (dart:core-patch/growable_array.dart:154:28)
+E/flutter ( 9614): #7      new List.of (dart:core-patch/array_patch.dart:39:18)
+E/flutter ( 9614): #8      ListIterable.toList (dart:_internal/iterable.dart:224:7)
+E/flutter ( 9614): #9      FirestoreService.getExpensesStream.<anonymous closure> (package:family_finances/services/firestore_service.dart:49:16)
+E/flutter ( 9614): #10     _MapStream._handleData (dart:async/stream_pipe.dart:247:31)
+E/flutter ( 9614): #11     _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+E/flutter ( 9614): #12     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter ( 9614): #13     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter ( 9614): #14     _BufferingStreamSubscription._add (dart:async/stream_impl.dart:312:7)
+E/flutter ( 9614): #15     _ForwardingStreamSubscription._add (dart:async/stream_pipe.dart:154:11)
+E/flutter ( 9614): #16     _MapStream._handleData (dart:async/stream_pipe.dart:252:10)
+E/flutter ( 9614): #17     _ForwardingStreamSubscription._handleData (dart:async/stream_pipe.dart:184:13)
+E/flutter ( 9614): #18     _RootZone.runUnaryGuarded (dart:async/zone.dart:1778:10)
+E/flutter ( 9614): #19     _BufferingStreamSubscription._sendData (dart:async/stream_impl.dart:381:11)
+E/flutter ( 9614): #20     _DelayedData.perform (dart:async/stream_impl.dart:573:14)
+E/flutter ( 9614): #21     _PendingEvents.handleNext (dart:async/stream_impl.dart:678:11)
+E/flutter ( 9614): #22     _PendingEvents.schedule.<anonymous closure> (dart:async/stream_impl.dart:649:7)
+E/flutter ( 9614): #23     _microtaskLoop (dart:async/schedule_microtask.dart:40:35)
+E/flutter ( 9614): #24     _startMicrotaskLoop (dart:async/schedule_microtask.dart:49:5)
+E/flutter ( 9614):
+I/VRI[MainActivity]@3e78383( 9614): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@3e78383
