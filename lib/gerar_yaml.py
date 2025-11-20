@@ -55,7 +55,7 @@ def salvar_yaml(estrutura, caminho_saida):
         json.dump(estrutura, f, ensure_ascii=False, indent=4)
 
 def main():
-    caminho_base = Path("C:\\Users\\gbaga\\family_finances\\lib").resolve()
+    caminho_base = Path("D:\\rhyan\\Fratteer\\family_finances\\lib").resolve()
     ignorar = carregar_gitignore(caminho_base)
     estrutura = ler_estrutura(caminho_base, ignorar)
     salvar_yaml(estrutura, caminho_base / "estrutura.json")

@@ -7,14 +7,17 @@ class ReceiptCategory {
 
   const ReceiptCategory({required this.name, required this.icon});
 
-  static const basicCategories = [
+  static const defaults = [
     ReceiptCategory(name: 'Salário', icon: Icons.monetization_on),
     ReceiptCategory(name: 'Presente', icon: Icons.card_giftcard),
     ReceiptCategory(name: 'Investimento', icon: Icons.trending_up),
     ReceiptCategory(name: 'Outros', icon: Icons.add_circle_outline),
   ];
+  
+  static ReceiptCategory defaultCategory = defaults[0];
 
-  static List<ReceiptCategory> allCategories() => [...basicCategories];
+
+  static List<ReceiptCategory> allCategories() => [...defaults];
 
   static ReceiptCategory fromMapFromFirestore(Map<String, dynamic> map) {
     return ReceiptCategory(

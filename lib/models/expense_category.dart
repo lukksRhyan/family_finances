@@ -7,12 +7,18 @@ class ExpenseCategory {
 
   const ExpenseCategory({required this.name, required this.icon});
 
-  static List<ExpenseCategory> basicCategories = [
+  static List<ExpenseCategory> defaults = [
+    ExpenseCategory(name: 'Outros', icon: Icons.category),
     ExpenseCategory(name: 'Alimentação', icon: Icons.fastfood),
     ExpenseCategory(name: 'Casa', icon: Icons.home),
     ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
     ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
   ];
+
+  static ExpenseCategory defaultCategory = defaults[0];
+
+  static List<ExpenseCategory> allCategories() => [...defaults];
+
 
   @override
   bool operator ==(Object other) {

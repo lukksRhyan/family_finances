@@ -40,6 +40,10 @@ class FinanceState with ChangeNotifier {
   String? _activePartnershipId;
   String? _activeSharedCollectionId;
 
+  String get currentPartnerId => _activePartnershipId ?? '';
+
+  
+
   List<Expense> _expensesPrivate = [];
   List<Expense> _expensesShared = [];
 

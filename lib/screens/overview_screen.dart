@@ -1,164 +1,384 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+
 import '../models/finance_state.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
+
+import '../styles/app_colors.dart';
 import 'add_transaction_screen.dart';
-import 'transaction_detail_screen.dart';
-import 'shopping_list_screen.dart';
-import 'qr_code_scanner_screen.dart';
-import '../services/nfce_service.dart';
-import '../models/nfce.dart';
 
 class OverviewScreen extends StatefulWidget {
   const OverviewScreen({super.key});
+
   @override
   State<OverviewScreen> createState() => _OverviewScreenState();
 }
 
 class _OverviewScreenState extends State<OverviewScreen> {
-  late DateTime _startDate;
-  late DateTime _endDate;
-
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _startDate = DateTime(now.year, now.month, 1);
-    _endDate = DateTime(now.year, now.month + 1, 0);
-  }
-
-  Future<void> _selectDateRange(BuildContext context) async {
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2100),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
-      locale: const Locale('pt', 'BR'),
-    );
-    if (picked != null) {
-      setState(() {
-        _startDate = picked.start;
-        _endDate = picked.end;
-      });
-    }
-  }
-
-  void _addTransaction() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => const AddTransactionScreen(),
-    );
-  }
-
-  void _openDetailsExpense(Expense e) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => TransactionDetailScreen(expenseToShow: e),
-    );
-  }
-
-  void _openDetailsReceipt(Receipt r) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => TransactionDetailScreen(receiptToShow: r),
-    );
-  }
+  String _filter = "all";
 
   @override
   Widget build(BuildContext context) {
-    final state = Provider.of<FinanceState>(context);
+    final finance = Provider.of<FinanceState>(context);
 
-    final filteredExpenses = state.expenses.where((e) {
-      final d = e.date;
-      return !d.isBefore(_startDate) &&
-          !d.isAfter(DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59));
-    }).toList();
+    final expenses = finance.expenses;
+    final receipts = finance.receipts;
 
-    final filteredReceipts = state.receipts.where((r) {
-      final d = r.date;
-      return !d.isBefore(_startDate) &&
-          !d.isAfter(DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59));
-    }).toList();
+    final allTransactions = [
+      ...expenses.map((e) => _TransactionItem.expense(e)),
+      ...receipts.map((r) => _TransactionItem.receipt(r)),
+    ]..sort((a, b) => b.date.compareTo(a.date));
 
-    final totalR = filteredReceipts.where((r) => !r.isFuture).fold(0.0, (x, y) => x + y.value);
-    final totalD = filteredExpenses.where((e) => !e.isFuture).fold(0.0, (x, y) => x + y.value);
+    final visible = _filter == "all"
+        ? allTransactions
+        : allTransactions.where((t) => t.type == _filter).toList();
+
+    final totalExpenses = expenses.fold(0.0, (sum, e) => sum + e.value);
+    final totalReceipts = receipts.fold(0.0, (sum, r) => sum + r.value);
+    final balance = totalReceipts - totalExpenses;
 
     return Scaffold(
+      backgroundColor: AppColors.secondary,
       appBar: AppBar(
-        title: const Text('FamilyFinances'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.pushNamed(context, '/settings'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+        title: const Text("Visão Geral"),
+        centerTitle: true,
+      ),
+
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.onPrimary,
+        icon: const Icon(Icons.add),
+        label: const Text("Adicionar"),
+        onPressed: () => _openAddTransaction(context),
+      ),
+
+      body: Column(
+        children: [
+          _buildHeader(balance, totalExpenses, totalReceipts),
+          const SizedBox(height: 10),
+          _buildFilterChips(),
+          const SizedBox(height: 10),
+          Expanded(
+            child: visible.isEmpty
+                ? _buildEmpty()
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: visible.length,
+                    itemBuilder: (_, i) => _buildTransactionTile(visible[i]),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =============================================================================================
+  // HEADER
+  // =============================================================================================
+  Widget _buildHeader(double balance, double expenses, double receipts) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      color: AppColors.primary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Saldo Atual",
+            style: TextStyle(
+              color: AppColors.onPrimary.withOpacity(0.8),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            "R\$ ${balance.toStringAsFixed(2).replaceAll('.', ',')}",
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: AppColors.onPrimary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _buildSummaryTile(
+                "Receitas",
+                receipts,
+                Icons.arrow_upward,
+                Colors.green.shade300,
+              ),
+              const SizedBox(width: 16),
+              _buildSummaryTile(
+                "Despesas",
+                expenses,
+                Icons.arrow_downward,
+                Colors.red.shade300,
+              ),
+            ],
           )
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildSummaryTile(
+      String label, double value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
           children: [
-            Row(
+            CircleAvatar(
+              radius: 18,
+              backgroundColor: color,
+              child: Icon(icon, color: Colors.white),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Período:'),
-                TextButton(
-                  onPressed: () => _selectDateRange(context),
-                  child: Text(
-                    '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
-                  ),
+                Text(label, style: const TextStyle(fontSize: 12)),
+                Text(
+                  "R\$ ${value.toStringAsFixed(2).replaceAll('.', ',')}",
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.calendar_month),
-                  onPressed: () => _selectDateRange(context),
-                )
               ],
-            ),
-            Text(
-              'Saldo: R\$ ${(totalR - totalD).toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            const Text('Despesas', style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            ...filteredExpenses.map(
-              (e) => ListTile(
-                leading: Icon(e.category.icon, color: Colors.red),
-                title: Text(e.title),
-                subtitle: Text(DateFormat('dd/MM/yyyy').format(e.date)),
-                trailing: Text(
-                  'R\$ ${e.value.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.red),
-                ),
-                onTap: () => _openDetailsExpense(e),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =============================================================================================
+  // FILTER CHIPS
+  // =============================================================================================
+  Widget _buildFilterChips() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: Row(
+        children: [
+          _chip("Todos", "all"),
+          const SizedBox(width: 12),
+          _chip("Despesas", "expense"),
+          const SizedBox(width: 12),
+          _chip("Receitas", "receipt"),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, String key) {
+    final selected = _filter == key;
+    return ChoiceChip(
+      selected: selected,
+      selectedColor: AppColors.primary,
+      backgroundColor: Colors.grey.shade300,
+      label: Text(
+        label,
+        style: TextStyle(
+          color: selected ? AppColors.onPrimary : Colors.black87,
+        ),
+      ),
+      onSelected: (_) => setState(() => _filter = key),
+    );
+  }
+
+  // =============================================================================================
+  // EMPTY STATE
+  // =============================================================================================
+  Widget _buildEmpty() {
+    return Center(
+      child: Text(
+        "Nenhuma transação ainda",
+        style: TextStyle(
+          color: Colors.grey.shade700,
+          fontSize: 16,
+        ),
+      ),
+    );
+  }
+
+  // =============================================================================================
+  // LIST TILE (CARD)
+  // =============================================================================================
+  Widget _buildTransactionTile(_TransactionItem t) {
+    final isExpense = t.type == "expense";
+
+    return GestureDetector(
+      onTap: () => _openAddTransaction(context, edit: t),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12.withOpacity(0.06),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            // ÍCONE
+            CircleAvatar(
+              radius: 22,
+              backgroundColor:
+                  isExpense ? Colors.red.shade100 : Colors.green.shade100,
+              child: Icon(
+                isExpense
+                    ? t.expense!.category.icon
+                    : t.receipt!.category.icon,
+                color: Colors.black87,
               ),
             ),
-            const Divider(height: 32),
-            const Text('Receitas', style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 8),
-            ...filteredReceipts.map(
-              (r) => ListTile(
-                leading: Icon(r.category.icon, color: Colors.green),
-                title: Text(r.title),
-                subtitle: Text(DateFormat('dd/MM/yyyy').format(r.date)),
-                trailing: Text(
-                  'R\$ ${r.value.toStringAsFixed(2)}',
-                  style: const TextStyle(color: Colors.green),
-                ),
-                onTap: () => _openDetailsReceipt(r),
+            const SizedBox(width: 14),
+
+            // CONTEÚDO CENTRAL
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        DateFormat("dd MMM").format(t.date),
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey.shade700),
+                      ),
+                      const SizedBox(width: 8),
+                      ..._buildBadges(t),
+                    ],
+                  )
+                ],
+              ),
+            ),
+
+            // VALOR
+            Text(
+              (isExpense ? "-" : "+") +
+                  " R\$ ${t.value.toStringAsFixed(2).replaceAll('.', ',')}",
+              style: TextStyle(
+                color: isExpense ? Colors.red : Colors.green.shade700,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addTransaction,
-        child: const Icon(Icons.add),
+    );
+  }
+
+  List<Widget> _buildBadges(_TransactionItem t) {
+    final List<Widget> badges = [];
+
+    if (t.isShared) badges.add(_badge("Compartilhado", Colors.blue));
+
+    if (t.isInInstallments) {
+      badges.add(_badge("${t.installmentCount}x", Colors.orange));
+    }
+
+    if (t.isRecurrent) {
+      badges.add(_badge("Recorrente", Colors.purple));
+    }
+
+    return badges;
+  }
+
+  Widget _badge(String text, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(left: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.black45,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
+
+  // =============================================================================================
+  // NAVIGATION
+  // =============================================================================================
+  void _openAddTransaction(BuildContext context,
+      { _TransactionItem? edit }) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddTransactionScreen(
+          expenseToEdit: edit?.expense,
+          receiptToEdit: edit?.receipt,
+        ),
+      ),
+    );
+  }
+}
+
+
+// =============================================================================================
+// INTERNAL WRAPPER MODEL (para unificar despesas e receitas)
+// =============================================================================================
+class _TransactionItem {
+  final String type; // "expense" | "receipt"
+  final DateTime date;
+  final double value;
+  final String title;
+
+  final Expense? expense;
+  final Receipt? receipt;
+
+  bool get isRecurrent =>
+      expense?.isRecurrent == true || receipt?.isRecurrent == true;
+
+  bool get isShared =>
+      expense?.isShared == true || receipt?.isShared == true;
+
+  bool get isInInstallments => expense?.isInInstallments == true;
+
+  int? get installmentCount => expense?.installmentCount;
+
+  _TransactionItem.expense(Expense e)
+      : type = "expense",
+        date = e.date,
+        value = e.value,
+        title = e.title,
+        expense = e,
+        receipt = null;
+
+  _TransactionItem.receipt(Receipt r)
+      : type = "receipt",
+        date = r.date,
+        value = r.value,
+        title = r.title,
+        expense = null,
+        receipt = r;
 }
