@@ -161,7 +161,7 @@ class DatabaseHelper {
     final db = await database;
     final rows = await db.query('productCategories');
     return rows.map((r) {
-      return ProductCategory.fromMap({...r, 'id': r['id']?.toString()});
+      return ProductCategory.fromMapForSqlite({...r, 'id': r['id']?.toString()});
     }).toList();
   }
 
@@ -190,7 +190,7 @@ class DatabaseHelper {
     // Category resolution should be done by caller (we can't guess categories here)
     return rows.map((r) {
       final map = Map<String, dynamic>.from(r);
-      return Product.fromMapForSqlite(map, ProductCategory.indefinida);
+      return Product.fromMapForSqlite(map);
     }).toList();
   }
 

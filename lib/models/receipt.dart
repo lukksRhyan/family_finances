@@ -13,6 +13,7 @@ class Receipt {
   final bool isShared;
   final String? sharedFromUid;
   final ReceiptCategory category;
+  final String? note;
 
   Receipt({
     this.id,
@@ -25,6 +26,7 @@ class Receipt {
     this.isShared = false,
     this.sharedFromUid,
     required this.category,
+    this.note
   });
 
   bool get isFuture => date.isAfter(DateTime.now());
@@ -40,6 +42,7 @@ class Receipt {
     bool? isShared,
     String? sharedFromUid,
     ReceiptCategory? category,
+    String? note
   }) {
     return Receipt(
       id: id ?? this.id,
@@ -52,6 +55,7 @@ class Receipt {
       isShared: isShared ?? this.isShared,
       sharedFromUid: sharedFromUid ?? this.sharedFromUid,
       category: category ?? this.category,
+      note: note ?? this.note
     );
   }
 
@@ -66,6 +70,7 @@ class Receipt {
       'isShared': isShared,
       'sharedFromUid': sharedFromUid,
       'category': category.toMapForFirestore(),
+      'note': note
     };
   }
 
@@ -80,6 +85,7 @@ class Receipt {
       'isShared': isShared ? 1 : 0,
       'sharedFromUid': sharedFromUid,
       'category': category.toMapForSqlite(),
+      'note':note
     };
   }
 
@@ -102,6 +108,7 @@ class Receipt {
       isShared: map['isShared'] ?? false,
       sharedFromUid: map['sharedFromUid']?.toString(),
       category: ReceiptCategory.fromMapFromFirestore(map['category']),
+      note: map['note']
     );
   }
 
@@ -121,6 +128,7 @@ class Receipt {
       isShared: (map['isShared'] ?? 0) == 1,
       sharedFromUid: map['sharedFromUid']?.toString(),
       category: ReceiptCategory.fromMapForSqlite(map['category']),
+      note: map['note']
     );
   }
 }

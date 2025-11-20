@@ -1,18 +1,16 @@
+// lib/models/transaction.dart
 import 'package:flutter/material.dart';
 
-/// Interface base para qualquer movimentação financeira (Gasto ou Ganho)
 abstract class TransactionModel {
-  String get id;
+  String? get id;
   String get title;
   double get value;
   DateTime get date;
   bool get isRecurrent;
-  
-  // Campos de categoria genéricos para facilitar a exibição em listas mistas
+
   String get categoryName;
   IconData get categoryIcon;
 
-  /// Identifica se é uma Despesa (true) ou Receita (false)
   bool get isExpense;
 
   Map<String, dynamic> toMapForFirestore();

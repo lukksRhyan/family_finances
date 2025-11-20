@@ -35,6 +35,7 @@ def ler_estrutura(caminho_base, ignorar):
             atual = atual.setdefault(parte, {})
 
         for nome_arquivo in files:
+            print(f"Processando arquivo: {nome_arquivo}")
             caminho_arquivo = Path(root) / nome_arquivo
             rel_path = Path(root).relative_to(caminho_base) / nome_arquivo
 
@@ -54,10 +55,10 @@ def salvar_yaml(estrutura, caminho_saida):
         json.dump(estrutura, f, ensure_ascii=False, indent=4)
 
 def main():
-    caminho_base = Path(".").resolve()
+    caminho_base = Path("C:\\Users\\gbaga\\family_finances\\lib").resolve()
     ignorar = carregar_gitignore(caminho_base)
     estrutura = ler_estrutura(caminho_base, ignorar)
-    salvar_yaml(estrutura, caminho_base / "estrutura.yaml")
+    salvar_yaml(estrutura, caminho_base / "estrutura.json")
     print("Arquivo estrutura.yaml gerado com sucesso.")
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 // lib/models/product.dart
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'product_category.dart';
 import 'product_option.dart';
 
@@ -7,11 +9,20 @@ class Product {
   final String? id;
   final int? localId;
   final String name;
-  ProductCategory category;
-  List<ProductOption> options;
-  bool isChecked;
-  int? priority;
+  final ProductCategory category;
+  final List<ProductOption> options;
+  final bool isChecked;
+  final int? priority;
 
+  String get nameLower => name.toLowerCase();
+@override
+bool operator ==(Object other) {
+  if (identical(this, other)) return true;
+
+  return other is Product &&
+      nameLower == other.nameLower;
+}
+ 
   Product({
     this.id,
     this.localId,
@@ -40,12 +51,12 @@ class Product {
       isChecked: isChecked ?? this.isChecked,
       priority: priority ?? this.priority,
     );
-  }
+    }
 
   Map<String, dynamic> toMapForFirestore() {
     return {
       'name': name,
-      'categoryId': category.id,
+      'category': category.toMapForFirestore(),
       'options': options.map((o) => o.toMap()).toList(),
       'isChecked': isChecked,
       'priority': priority,
@@ -53,82 +64,46 @@ class Product {
   }
 
   Map<String, dynamic> toMapForSqlite() {
-    // optionsJson stored as JSON string
     return {
       'id': id,
       'name': name,
-      'categoryId': category.id,
-      'optionsJson': jsonEncode(options.map((o) => o.toMap()).toList()),
+      'category': category.toMapForSqlite(),
+      'optionsJson': ProductOption.encode(options),
       'isChecked': isChecked ? 1 : 0,
       'priority': priority,
     };
   }
 
-  factory Product.fromMapFromFirestore(Map<String, dynamic> map, String id, ProductCategory category) {
-    final rawOptions = map['options'];
-    final List<ProductOption> parsed = [];
-    if (rawOptions is List) {
-      for (var o in rawOptions) {
-        try {
-          if (o is Map) {
-            parsed.add(ProductOption.fromMap(Map<String, dynamic>.from(o)));
-          } else if (o is Map<String, dynamic>) {
-            parsed.add(ProductOption.fromMap(o));
-          } else {
-            // ignore malformed option
-          }
-        } catch (_) {
-          // ignore this option (avoid calling undefined helper)
-        }
-      }
-    }
+  factory Product.fromMapFromFirestore(
+      Map<String, dynamic> map,
+      String id,
+      ) {
+    final List options = map['options'] ?? [];
+    final parsed = options.map((o) => ProductOption.fromMap(o)).toList();
+
     return Product(
       id: id,
-      localId: null,
       name: map['name'] ?? '',
-      category: category,
-      options: parsed,
+      category: ProductCategory.fromMapFromFirestore(map['category'], map['category']["id"] ?? "undefined"),
+      options: List<ProductOption>.from(parsed),
       isChecked: map['isChecked'] ?? false,
-      priority: map['priority'] is int ? map['priority'] as int : (map['priority'] != null ? int.tryParse(map['priority'].toString()) : null),
+      priority: map['priority'],
     );
   }
 
-  factory Product.fromMapForSqlite(Map<String, dynamic> map, ProductCategory category) {
-    final localId = map['localId'] is int
-        ? map['localId'] as int
-        : (map['localId'] != null ? int.tryParse(map['localId'].toString()) : null);
-
-    List<ProductOption> parsed = [];
-    try {
-      final optionsJson = map['optionsJson']?.toString();
-      if (optionsJson != null && optionsJson.isNotEmpty) {
-        final dynamic decoded = jsonDecode(optionsJson);
-        if (decoded is List) {
-          for (var o in decoded) {
-            try {
-              if (o is Map) {
-                parsed.add(ProductOption.fromMap(Map<String, dynamic>.from(o)));
-              }
-            } catch (_) {
-              // skip malformed option
-            }
-          }
-        }
-      }
-    } catch (_) {
-      // ignore parsing errors
-    }
-
+  factory Product.fromMapForSqlite(Map<String, dynamic> map) {
     return Product(
       id: map['id']?.toString(),
-      localId: localId,
-      name: map['name'] ?? '',
-      category: category,
-      options: parsed,
-      isChecked: (map['isChecked'] ?? 0) == 1,
-      priority: map['priority'] is int ? map['priority'] as int : (map['priority'] != null ? int.tryParse(map['priority'].toString()) : null),
+      localId: map['localId'] is int ? map['localId'] : int.tryParse(map['localId'].toString()),
+      name: map['name'],
+      category: ProductCategory.fromMapForSqlite(map['category']),
+      options: ProductOption.decode(map['optionsJson']),
+      isChecked: map['isChecked'] == 1,
+      priority: map['priority'],
     );
   }
-
-  String get nameLower => name.trim().toLowerCase();
+  
+  @override
+  int get hashCode => name.hashCode;
+  
 }

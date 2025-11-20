@@ -78,7 +78,7 @@ class FirestoreService {
     final categories = snapshot.docs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
       // ensure id is set
-      return ProductCategory.fromMap({...data, 'id': doc.id});
+      return ProductCategory.fromMapFromFirestore(data, doc.id);
     }).toList();
 
     final map = {for (var c in categories) c.id: c};
@@ -96,7 +96,7 @@ class FirestoreService {
       final products = productSnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         final cat = categoryMap[data['categoryId']] ?? ProductCategory.indefinida;
-        return Product.fromMapFromFirestore(data, doc.id, cat);
+        return Product.fromMapFromFirestore(data, doc.id);
       }).toList();
       return products;
     });
@@ -107,10 +107,10 @@ class FirestoreService {
         .snapshots()
         .map((snap) => snap.docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              return ProductCategory.fromMap({...data, 'id': doc.id});
+              return ProductCategory.fromMapFromFirestore(data, doc.id);
             }).toList());
   }
 
   Future<void> addProductCategory(ProductCategory category) =>
-      _productCategoriesCollection.add(category.toMap());
+      _productCategoriesCollection.add(category.toMapForFirestore());
 }

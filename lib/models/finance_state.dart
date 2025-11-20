@@ -1,386 +1,528 @@
-// lib/models/finance_state.dart
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-// Serviços
+import '../database_helper.dart';
 import '../services/firestore_service.dart';
 import '../services/gemini_service.dart';
-import '../database_helper.dart';
 
-// Modelos de Dados
 import 'expense.dart';
 import 'receipt.dart';
 import 'product.dart';
 import 'product_category.dart';
 import 'expense_category.dart';
 import 'nfce.dart';
+import 'partnership.dart';
 
 class FinanceState with ChangeNotifier {
-  // Serviços
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
   FirestoreService? _firestoreService;
   late GeminiService _geminiService;
 
-  // Subscriptions
-  StreamSubscription<List<Expense>>? _expensesSubscription;
-  StreamSubscription<List<Receipt>>? _receiptsSubscription;
-  StreamSubscription<List<Product>>? _productsSubscription;
-  StreamSubscription<List<ProductCategory>>? _productCategoriesSubscription;
+  StreamSubscription<List<Expense>>? _expensesPrivateSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _expensesSharedSub;
+
+  StreamSubscription<List<Receipt>>? _receiptsPrivateSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _receiptsSharedSub;
+
+  StreamSubscription<List<Product>>? _productsPrivateSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSharedSub;
+
+  StreamSubscription<List<ProductCategory>>? _categoriesPrivateSub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _categoriesSharedSub;
+  
+  StreamSubscription<DocumentSnapshot>? _partnershipSnapSub;
 
   String? _uid;
   bool _isLoading = true;
 
-  // Dados locais (privados)
-  List<Expense> _expenses = [];
-  List<Receipt> _receipts = [];
-  List<Product> _products = [];
-  List<ProductCategory> _productCategories = [];
+  String? _activePartnershipId;
+  String? _activeSharedCollectionId;
 
-  // Categorias estáticas de despesas (fallback)
+  List<Expense> _expensesPrivate = [];
+  List<Expense> _expensesShared = [];
+
+  List<Receipt> _receiptsPrivate = [];
+  List<Receipt> _receiptsShared = [];
+
+  List<Product> _productsPrivate = [];
+  List<Product> _productsShared = [];
+
+  List<ProductCategory> _categoriesPrivate = [];
+  List<ProductCategory> _categoriesShared = [];
+
   final List<ExpenseCategory> _expenseCategories = [
-    const ExpenseCategory(name: 'Compras', icon: Icons.shopping_cart),
-    const ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
-    const ExpenseCategory(name: 'Moradia', icon: Icons.home),
-    const ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
-    const ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
-    const ExpenseCategory(name: 'Outros', icon: Icons.category),
+    ExpenseCategory(name: 'Compras', icon: Icons.shopping_cart),
+    ExpenseCategory(name: 'Comida', icon: Icons.fastfood),
+    ExpenseCategory(name: 'Moradia', icon: Icons.home),
+    ExpenseCategory(name: 'Transporte', icon: Icons.directions_car),
+    ExpenseCategory(name: 'Lazer', icon: Icons.sports_esports),
+    ExpenseCategory(name: 'Outros', icon: Icons.category),
   ];
 
-  // --- Getters ---
-  bool get isLoggedIn => _uid != null;
+  FinanceState() {
+    _geminiService = GeminiService();
+    FirebaseAuth.instance.authStateChanges().listen(_handleAuth);
+    _handleAuth(FirebaseAuth.instance.currentUser);
+  }
 
-  // Expondo listas (privadas apenas; se futuramente quiser mesclar com "shared", faz-se aqui)
+  bool get isLoggedIn => _uid != null;
+  bool get hasPartnership => _activeSharedCollectionId != null;
+
+  bool get isLoading => _isLoading;
+
   List<Expense> get expenses {
-    final copy = List<Expense>.from(_expenses);
-    copy.sort((a, b) => b.date.compareTo(a.date));
-    return copy;
+    final merged = [..._expensesPrivate, ..._expensesShared];
+    merged.sort((a, b) => b.date.compareTo(a.date));
+    return merged;
   }
 
   List<Receipt> get receipts {
-    final copy = List<Receipt>.from(_receipts);
-    copy.sort((a, b) => b.date.compareTo(a.date));
-    return copy;
+    final merged = [..._receiptsPrivate, ..._receiptsShared];
+    merged.sort((a, b) => b.date.compareTo(a.date));
+    return merged;
   }
 
-  List<Product> get shoppingListProducts => _products;
-  List<ProductCategory> get productCategories => _productCategories;
-  bool get isLoading => _isLoading;
+  List<Product> get shoppingListProducts {
+    final merged = [..._productsPrivate, ..._productsShared];
+    merged.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return merged;
+  }
+
+  List<ProductCategory> get productCategories {
+    final merged = [
+      ProductCategory.indefinida,
+      ..._categoriesPrivate,
+      ..._categoriesShared
+    ];
+    return merged;
+  }
+
   List<ExpenseCategory> get expenseCategories => _expenseCategories;
 
-  // --- Inicialização ---
-  FinanceState() {
-    _geminiService = GeminiService();
-    // Ouvimos alterações de autenticação
-    FirebaseAuth.instance.authStateChanges().listen((user) {
-      _handleAuthStateChanged(user);
-    });
-    // Checagem inicial
-    _handleAuthStateChanged(FirebaseAuth.instance.currentUser);
-  }
-
-  void _handleAuthStateChanged(User? user) {
-    // evita reloads desnecessários
+  void _handleAuth(User? user) {
     if (user != null && _uid != user.uid) {
       _uid = user.uid;
-      _initializeCloudData(user.uid);
+      _initializeCloud(user.uid);
     } else if (user == null && _uid != null) {
-      // logout
       _uid = null;
-      _initializeLocalData();
+      _clearCloud();
+      _initializeLocal();
     } else if (user == null && _uid == null) {
-      // primeiro boot em modo local
-      if (_expenses.isEmpty && _receipts.isEmpty && _products.isEmpty) {
-        _initializeLocalData();
-      }
+      _initializeLocal();
     }
   }
 
-  // --- Modo Local (Sqflite) ---
-  Future<void> _initializeLocalData() async {
-    if (!_isLoading) {
-      _isLoading = true;
-      notifyListeners();
-    }
+  Future<void> _clearCloud() async {
+    await _expensesPrivateSub?.cancel();
+    await _expensesSharedSub?.cancel();
+    await _receiptsPrivateSub?.cancel();
+    await _receiptsSharedSub?.cancel();
+    await _productsPrivateSub?.cancel();
+    await _productsSharedSub?.cancel();
+    await _categoriesPrivateSub?.cancel();
+    await _categoriesSharedSub?.cancel();
+    await _partnershipSnapSub?.cancel();
 
-    // Cancela streams da nuvem se existirem
-    await _clearCloudSubscriptions();
-    _firestoreService = null;
+    _expensesPrivateSub = null;
+    _expensesSharedSub = null;
+    _receiptsPrivateSub = null;
+    _receiptsSharedSub = null;
+    _productsPrivateSub = null;
+    _productsSharedSub = null;
+    _categoriesPrivateSub = null;
+    _categoriesSharedSub = null;
+    _partnershipSnapSub = null;
 
-    try {
-      _expenses = await _databaseHelper.getAllExpenses();
-      _receipts = await _databaseHelper.getAllReceipts();
-      _productCategories = await _databaseHelper.getAllProductCategories();
-      _products = await _databaseHelper.getAllProducts();
-    } catch (e) {
-      print("Erro ao carregar dados locais: $e");
-      _expenses = [];
-      _receipts = [];
-      _productCategories = [];
-      _products = [];
-    }
+    _activePartnershipId = null;
+    _activeSharedCollectionId = null;
+  }
+
+  Future<void> _initializeLocal() async {
+    _isLoading = true;
+    notifyListeners();
+
+    _expensesPrivate = await _databaseHelper.getAllExpenses();
+    _receiptsPrivate = await _databaseHelper.getAllReceipts();
+    _categoriesPrivate = await _databaseHelper.getAllProductCategories();
+    _productsPrivate = await _databaseHelper.getAllProducts();
+
+    _expensesShared = [];
+    _receiptsShared = [];
+    _productsShared = [];
+    _categoriesShared = [];
 
     _isLoading = false;
     notifyListeners();
   }
 
-  // --- Modo Nuvem (Firestore) ---
-  void _initializeCloudData(String uid) {
-    if (!_isLoading) {
-      _isLoading = true;
-      notifyListeners();
-    }
+  void _initializeCloud(String uid) {
+    _isLoading = true;
+    notifyListeners();
 
     _firestoreService = FirestoreService(uid: uid);
-    _clearCloudSubscriptions();
 
-    int streamsToLoad = 4;
-    int streamsLoaded = 0;
+    _partnershipSnapSub = FirebaseFirestore.instance
+        .collection('partnerships')
+        .doc(uid)
+        .snapshots()
+        .listen(_handlePartnershipSnapshot, onError: (_) {});
 
-    void checkLoading() {
-      streamsLoaded++;
-      if (streamsLoaded >= streamsToLoad) {
-        _isLoading = false;
-      }
+    _subscribePrivateCollections();
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      _isLoading = false;
       notifyListeners();
+    });
+  }
+
+  void _handlePartnershipSnapshot(DocumentSnapshot snap) {
+    if (!snap.exists) {
+      _activePartnershipId = null;
+      _activeSharedCollectionId = null;
+      _unsubscribeSharedCollections();
+      _clearShared();
+      notifyListeners();
+      return;
     }
 
-    // NOTE: usa os nomes de método existentes no seu FirestoreService fornecido
-    _expensesSubscription = _firestoreService!.getExpensesStream().listen((data) {
-      // Caso seus documentos tenham campo 'isShared', e você queira filtrar,
-      // faça aqui. Atualmente assumimos que getExpensesStream devolve só as despesas do usuário.
-      _expenses = data;
-      checkLoading();
-    }, onError: (e) {
-      print("Erro no stream de despesas: $e");
-      checkLoading();
+    final data = snap.data() as Map<String, dynamic>;
+    final sharedId = data['sharedCollectionId'];
+    final pid = snap.id;
+
+    if (_activeSharedCollectionId == sharedId) return;
+
+    _activePartnershipId = pid;
+    _activeSharedCollectionId = sharedId;
+
+    _subscribeSharedCollections();
+  }
+
+  void _subscribePrivateCollections() {
+    _expensesPrivateSub = _firestoreService!.getExpensesStream().listen((d) {
+      _expensesPrivate = d;
+      notifyListeners();
     });
 
-    _receiptsSubscription = _firestoreService!.getReceiptsStream().listen((data) {
-      _receipts = data;
-      checkLoading();
-    }, onError: (e) {
-      print("Erro no stream de receitas: $e");
-      checkLoading();
+    _receiptsPrivateSub = _firestoreService!.getReceiptsStream().listen((d) {
+      _receiptsPrivate = d;
+      notifyListeners();
     });
 
-    _productsSubscription = _firestoreService!.getProductsStream().listen((data) {
-      _products = data;
-      checkLoading();
-    }, onError: (e) {
-      print("Erro no stream de produtos: $e");
-      checkLoading();
+    _productsPrivateSub = _firestoreService!.getProductsStream().listen((d) {
+      _productsPrivate = d;
+      notifyListeners();
     });
 
-    _productCategoriesSubscription = _firestoreService!.getCategoriesStream().listen((data) {
-      // garante categoria indefinida no topo
-      _productCategories = [ProductCategory.indefinida, ...data];
-      checkLoading();
-    }, onError: (e) {
-      print("Erro no stream de categorias: $e");
-      checkLoading();
+    _categoriesPrivateSub =
+        _firestoreService!.getCategoriesStream().listen((d) {
+      _categoriesPrivate = d;
+      notifyListeners();
     });
   }
 
-  Future<void> _clearCloudSubscriptions() async {
-    await _expensesSubscription?.cancel();
-    await _receiptsSubscription?.cancel();
-    await _productsSubscription?.cancel();
-    await _productCategoriesSubscription?.cancel();
+  void _subscribeSharedCollections() {
+    if (_activeSharedCollectionId == null) return;
 
-    _expensesSubscription = null;
-    _receiptsSubscription = null;
-    _productsSubscription = null;
-    _productCategoriesSubscription = null;
+    final base = FirebaseFirestore.instance
+        .collection('partnerships')
+        .doc(_activePartnershipId)
+        .collection('shared');
+
+    _expensesSharedSub = base
+        .doc('expenses')
+        .collection('items')
+        .snapshots()
+        .listen((snap) {
+      _expensesShared = snap.docs
+          .map((doc) =>
+              Expense.fromMapFromFirestore(doc.data(), doc.id))
+          .toList();
+      notifyListeners();
+    });
+
+    _receiptsSharedSub = base
+        .doc('receipts')
+        .collection('items')
+        .snapshots()
+        .listen((snap) {
+      _receiptsShared = snap.docs
+          .map((doc) =>
+              Receipt.fromMapFromFirestore(doc.data(), doc.id))
+          .toList();
+      notifyListeners();
+    });
+
+    _productsSharedSub = base
+        .doc('products')
+        .collection('items')
+        .snapshots()
+        .listen((snap) {
+      _productsShared = snap.docs
+          .map((doc) =>
+              Product.fromMapFromFirestore(doc.data(), doc.id))
+          .toList();
+      notifyListeners();
+    });
+
+    _categoriesSharedSub = base
+        .doc('productCategories')
+        .collection('items')
+        .snapshots()
+        .listen((snap) {
+      _categoriesShared = snap.docs
+          .map((doc) => ProductCategory.fromMapFromFirestore(
+              doc.data(), doc.id))
+          .toList();
+      notifyListeners();
+    });
   }
 
-  @override
-  void dispose() {
-    _clearCloudSubscriptions();
-    super.dispose();
+  void _unsubscribeSharedCollections() async {
+    await _expensesSharedSub?.cancel();
+    await _receiptsSharedSub?.cancel();
+    await _productsSharedSub?.cancel();
+    await _categoriesSharedSub?.cancel();
+
+    _expensesSharedSub = null;
+    _receiptsSharedSub = null;
+    _productsSharedSub = null;
+    _categoriesSharedSub = null;
   }
 
-  // --- CRUD multipath (local / cloud) ---
+  void _clearShared() {
+    _expensesShared = [];
+    _receiptsShared = [];
+    _productsShared = [];
+    _categoriesShared = [];
+  }
 
-  Future<void> addExpense(Expense expense) async {
-    if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.addExpense(expense);
-      // stream do Firestore irá atualizar a lista
+  Future<void> addExpense(Expense e) async {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('expenses')
+          .collection('items');
+      await base.add(e.toMapForFirestore());
+    } else if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.addExpense(e);
     } else {
-      final newExpense = await _databaseHelper.createExpense(expense);
-      _expenses.insert(0, newExpense.copyWith(localId: newExpense.localId));
+      final newE = await _databaseHelper.createExpense(e);
+      _expensesPrivate.insert(0, newE.copyWith(localId: newE.localId));
       notifyListeners();
     }
   }
 
-  Future<void> updateExpense(Expense expense) async {
-    if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.updateExpense(expense);
+  Future<void> updateExpense(Expense e) async {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('expenses')
+          .collection('items');
+      await base.doc(e.id).update(e.toMapForFirestore());
+    } else if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.updateExpense(e);
     } else {
-      await _databaseHelper.updateExpense(expense);
-      await _loadAllDataFromSqlite();
+      await _databaseHelper.updateExpense(e);
+      _expensesPrivate = await _databaseHelper.getAllExpenses();
+      notifyListeners();
     }
   }
 
   Future<void> deleteExpense(String id) async {
-    if (isLoggedIn && _firestoreService != null) {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('expenses')
+          .collection('items');
+      await base.doc(id).delete();
+    } else if (isLoggedIn && _firestoreService != null) {
       await _firestoreService!.deleteExpense(id);
     } else {
-      final localId = int.tryParse(id);
-      if (localId == null) return;
-      await _databaseHelper.deleteExpense(localId);
-      _expenses.removeWhere((e) => e.localId == localId);
+      final lid = int.tryParse(id);
+      if (lid == null) return;
+      await _databaseHelper.deleteExpense(lid);
+      _expensesPrivate.removeWhere((e) => e.localId == lid);
       notifyListeners();
     }
   }
 
-  Future<void> addReceipt(Receipt receipt) async {
-    if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.addReceipt(receipt);
+  Future<void> addReceipt(Receipt r) async {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('receipts')
+          .collection('items');
+      await base.add(r.toMapForFirestore());
+    } else if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.addReceipt(r);
     } else {
-      final newReceipt = await _databaseHelper.createReceipt(receipt);
-      _receipts.insert(0, newReceipt.copyWith(localId: newReceipt.localId));
+      final newR = await _databaseHelper.createReceipt(r);
+      _receiptsPrivate.insert(0, newR.copyWith(localId: newR.localId));
       notifyListeners();
     }
   }
 
-  Future<void> updateReceipt(Receipt receipt) async {
-    if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.updateReceipt(receipt);
+  Future<void> updateReceipt(Receipt r) async {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('receipts')
+          .collection('items');
+      await base.doc(r.id).update(r.toMapForFirestore());
+    } else if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.updateReceipt(r);
     } else {
-      await _databaseHelper.updateReceipt(receipt);
-      await _loadAllDataFromSqlite();
+      await _databaseHelper.updateReceipt(r);
+      _receiptsPrivate = await _databaseHelper.getAllReceipts();
+      notifyListeners();
     }
   }
 
   Future<void> deleteReceipt(String id) async {
-    if (isLoggedIn && _firestoreService != null) {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('receipts')
+          .collection('items');
+      await base.doc(id).delete();
+    } else if (isLoggedIn && _firestoreService != null) {
       await _firestoreService!.deleteReceipt(id);
     } else {
-      final localId = int.tryParse(id);
-      if (localId == null) return;
-      await _databaseHelper.deleteReceipt(localId);
-      _receipts.removeWhere((r) => r.localId == localId);
+      final lid = int.tryParse(id);
+      if (lid == null) return;
+      await _databaseHelper.deleteReceipt(lid);
+      _receiptsPrivate.removeWhere((e) => e.localId == lid);
       notifyListeners();
     }
   }
 
-  Future<void> addProduct(Product product) async {
-    if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.addProduct(product);
+  Future<void> addProduct(Product p) async {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('products')
+          .collection('items');
+      await base.add(p.toMapForFirestore());
+    } else if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.addProduct(p);
     } else {
-      final newProduct = await _databaseHelper.createProduct(product);
-      _products.add(newProduct.copyWith(localId: newProduct.localId));
-      _products.sort((a, b) => a.nameLower.compareTo(b.nameLower));
+      final newP = await _databaseHelper.createProduct(p);
+      _productsPrivate.add(newP.copyWith(localId: newP.localId));
       notifyListeners();
     }
   }
 
-  Future<void> updateProduct(Product product) async {
-    if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.updateProduct(product);
+  Future<void> updateProduct(Product p) async {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('products')
+          .collection('items');
+      await base.doc(p.id).update(p.toMapForFirestore());
+    } else if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.updateProduct(p);
     } else {
-      await _databaseHelper.updateProduct(product);
-      _products = await _databaseHelper.getAllProducts();
+      await _databaseHelper.updateProduct(p);
+      _productsPrivate = await _databaseHelper.getAllProducts();
       notifyListeners();
     }
   }
 
-  Future<void> deleteProduct(String productId) async {
-    if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.deleteProduct(productId);
+  Future<void> deleteProduct(String id) async {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('products')
+          .collection('items');
+      await base.doc(id).delete();
+    } else if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.deleteProduct(id);
     } else {
-      final localId = int.tryParse(productId);
-      if (localId == null) return;
-      await _databaseHelper.deleteProduct(localId);
-      _products.removeWhere((p) => p.localId == localId);
+      final lid = int.tryParse(id);
+      if (lid == null) return;
+      await _databaseHelper.deleteProduct(lid);
+      _productsPrivate.removeWhere((p) => p.localId == lid);
       notifyListeners();
     }
   }
 
-  Future<void> toggleProductChecked(Product product, bool value) async {
-    final updated = product.copyWith(isChecked: value);
-    if (isLoggedIn && _firestoreService != null) {
+  Future<void> toggleProductChecked(Product p, bool val) async {
+    final updated = p.copyWith(isChecked: val);
+
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('products')
+          .collection('items');
+      await base.doc(p.id).update(updated.toMapForFirestore());
+    } else if (isLoggedIn && _firestoreService != null) {
       await _firestoreService!.updateProduct(updated);
     } else {
       await _databaseHelper.updateProduct(updated);
-      final idx = _products.indexWhere((p) => p.localId == updated.localId);
+      final idx =
+          _productsPrivate.indexWhere((e) => e.localId == updated.localId);
       if (idx != -1) {
-        _products[idx] = updated;
-        notifyListeners();
+        _productsPrivate[idx] = updated;
       }
-    }
-  }
-
-  Future<void> addProductCategory(ProductCategory category) async {
-    if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.addProductCategory(category);
-    } else {
-      await _databaseHelper.createProductCategory(category);
-      _productCategories.add(category);
       notifyListeners();
     }
   }
 
-  // --- Utilitários / sincronização local -> cloud (opcional) ---
-
-  Future<void> syncLocalDataToFirebase(String newUid) async {
-    if (_firestoreService == null || _firestoreService!.uid != newUid) {
-      _firestoreService = FirestoreService(uid: newUid);
+  Future<void> addProductCategory(ProductCategory c) async {
+    if (hasPartnership) {
+      final base = FirebaseFirestore.instance
+          .collection('partnerships')
+          .doc(_activePartnershipId)
+          .collection('shared')
+          .doc('productCategories')
+          .collection('items');
+      await base.add(c.toMapForFirestore());
+    } else if (isLoggedIn && _firestoreService != null) {
+      await _firestoreService!.addProductCategory(c);
+    } else {
+      await _databaseHelper.createProductCategory(c);
+      _categoriesPrivate.add(c);
+      notifyListeners();
     }
-
-    final localExpenses = await _databaseHelper.getAllExpenses();
-    final localReceipts = await _databaseHelper.getAllReceipts();
-    final localCategories = await _databaseHelper.getAllProductCategories();
-    final localProducts = await _databaseHelper.getAllProducts();
-
-    // Envia categorias -> produtos -> transações (ordem simples)
-    for (final cat in localCategories) {
-      // evitar reenvio de categorias default se necessário
-      await _firestoreService!.addProductCategory(cat);
-    }
-
-    for (final p in localProducts) {
-      await _firestoreService!.addProduct(p);
-    }
-
-    for (final e in localExpenses) {
-      await _firestoreService!.addExpense(e);
-    }
-
-    for (final r in localReceipts) {
-      await _firestoreService!.addReceipt(r);
-    }
-
-    // apaga local (opcional)
-    await _databaseHelper.deleteAllLocalData();
   }
 
-  Future<void> _loadAllDataFromSqlite() async {
-    _expenses = await _databaseHelper.getAllExpenses();
-    _receipts = await _databaseHelper.getAllReceipts();
-    _products = await _databaseHelper.getAllProducts();
-    _productCategories = await _databaseHelper.getAllProductCategories();
-    notifyListeners();
-  }
+  Future<void> processNfceItems(Nfce nfce) async {}
 
-  // --- Saldos ---
-  double get totalReceitas => receipts.fold(0.0, (sum, r) => sum + r.value);
-  double get totalDespesas => expenses.fold(0.0, (sum, e) => sum + e.value);
-  double get totalReceitasAtuais => receipts.where((r) => !r.isFuture).fold(0.0, (sum, r) => sum + r.value);
-  double get totalDespesasAtuais => expenses.where((e) => !e.isFuture).fold(0.0, (sum, e) => sum + e.value);
+  double get totalReceitas =>
+      receipts.fold(0.0, (s, x) => s + x.value);
+
+  double get totalDespesas =>
+      expenses.fold(0.0, (s, x) => s + x.value);
+
+  double get totalReceitasAtuais =>
+      receipts.where((x) => !x.isFuture).fold(0.0, (s, x) => s + x.value);
+
+  double get totalDespesasAtuais =>
+      expenses.where((x) => !x.isFuture).fold(0.0, (s, x) => s + x.value);
+
   double get saldoAtual => totalReceitasAtuais - totalDespesasAtuais;
 
-  // --- NFC-e processing stub (use sua implementação existente) ---
-  Future<void> processNfceItems(Nfce nota) async {
-    // mantenha sua implementação (chamando GeminiService, classificando, criando produtos/despesas)
-    // aqui chamamos addProduct / addExpense que já cuidam do multiplex.
-    print('processNfceItems called (implemente conforme necessário).');
-  }
-
-  // Força notificação (útil para pull-to-refresh)
-  void forceNotify() {
-    notifyListeners();
-  }
+  void forceNotify() => notifyListeners();
 }
