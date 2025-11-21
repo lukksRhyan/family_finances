@@ -13,7 +13,7 @@ import 'product.dart';
 import 'product_category.dart';
 import 'expense_category.dart';
 import 'nfce.dart';
-import 'partnership.dart';
+// import 'partnership.dart'; // Não está sendo usado diretamente aqui, mas ok manter se precisar
 
 class FinanceState with ChangeNotifier {
   final DatabaseHelper _databaseHelper = DatabaseHelper.instance;
@@ -42,7 +42,12 @@ class FinanceState with ChangeNotifier {
 
   String get currentPartnerId => _activePartnershipId ?? '';
 
+  String? _userName;
+  String? _partnerName;
   
+  // Getters
+  String? get userName => _userName;
+  String? get partnerName => _partnerName;
 
   List<Expense> _expensesPrivate = [];
   List<Expense> _expensesShared = [];
@@ -68,7 +73,10 @@ class FinanceState with ChangeNotifier {
   FinanceState() {
     _geminiService = GeminiService();
     FirebaseAuth.instance.authStateChanges().listen(_handleAuth);
-    _handleAuth(FirebaseAuth.instance.currentUser);
+    // Tenta carregar usuário atual se já existir
+    if (FirebaseAuth.instance.currentUser != null) {
+       _handleAuth(FirebaseAuth.instance.currentUser);
+    }
   }
 
   bool get isLoggedIn => _uid != null;
@@ -109,11 +117,9 @@ class FinanceState with ChangeNotifier {
     if (user != null && _uid != user.uid) {
       _uid = user.uid;
       _initializeCloud(user.uid);
-    } else if (user == null && _uid != null) {
+    } else if (user == null) {
       _uid = null;
       _clearCloud();
-      _initializeLocal();
-    } else if (user == null && _uid == null) {
       _initializeLocal();
     }
   }
@@ -141,6 +147,8 @@ class FinanceState with ChangeNotifier {
 
     _activePartnershipId = null;
     _activeSharedCollectionId = null;
+    _partnerName = null;
+    _userName = null;
   }
 
   Future<void> _initializeLocal() async {
@@ -167,15 +175,26 @@ class FinanceState with ChangeNotifier {
 
     _firestoreService = FirestoreService(uid: uid);
 
+    // 1. Carrega o nome do usuário atual
+    _firestoreService!.getUserName(uid).then((name) {
+      _userName = name;
+      notifyListeners();
+    });
+
+    // Cancela assinatura anterior se houver para evitar duplicidade
+    _partnershipSnapSub?.cancel();
+    
     _partnershipSnapSub = FirebaseFirestore.instance
         .collection('partnerships')
         .doc(uid)
         .snapshots()
-        .listen(_handlePartnershipSnapshot, onError: (_) {});
+        .listen(_handlePartnershipSnapshot, onError: (e) {
+          print("Erro no listener de parceria: $e");
+        });
 
     _subscribePrivateCollections();
 
-    Future.delayed(const Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       _isLoading = false;
       notifyListeners();
     });
@@ -183,24 +202,39 @@ class FinanceState with ChangeNotifier {
 
   void _handlePartnershipSnapshot(DocumentSnapshot snap) {
     if (!snap.exists) {
-      _activePartnershipId = null;
-      _activeSharedCollectionId = null;
-      _unsubscribeSharedCollections();
-      _clearShared();
-      notifyListeners();
+      // Se o documento foi deletado ou não existe, limpa tudo
+      if (_activeSharedCollectionId != null) {
+        _activePartnershipId = null;
+        _activeSharedCollectionId = null;
+        _partnerName = null;
+        _unsubscribeSharedCollections();
+        _clearShared();
+        notifyListeners();
+      }
       return;
     }
 
     final data = snap.data() as Map<String, dynamic>;
     final sharedId = data['sharedCollectionId'];
-    final pid = snap.id;
+    final partnerId = data['partnerId']; 
+    final pid = snap.id; // Meu ID (doc id)
 
-    if (_activeSharedCollectionId == sharedId) return;
+    // Se mudou o ID compartilhado ou ainda não tínhamos um
+    if (_activeSharedCollectionId != sharedId) {
+      _activePartnershipId = pid;
+      _activeSharedCollectionId = sharedId;
 
-    _activePartnershipId = pid;
-    _activeSharedCollectionId = sharedId;
+      // Busca o nome do parceiro
+      if (partnerId != null && _firestoreService != null) {
+        _firestoreService!.getUserName(partnerId).then((name) {
+          _partnerName = name;
+          notifyListeners();
+        });
+      }
 
-    _subscribeSharedCollections();
+      _subscribeSharedCollections();
+      notifyListeners();
+    }
   }
 
   void _subscribePrivateCollections() {
@@ -227,11 +261,38 @@ class FinanceState with ChangeNotifier {
   }
 
   void _subscribeSharedCollections() {
-    if (_activeSharedCollectionId == null) return;
+    if (_activeSharedCollectionId == null || _activePartnershipId == null) return;
 
+    // IMPORTANTE: O caminho deve usar o sharedCollectionId ou a estrutura que definimos na SettingsScreen.
+    // Na SettingsScreen definimos: partnerships/{myUid} -> field: sharedCollectionId
+    // Mas onde guardamos os dados? 
+    // Na regra de segurança definimos: match /partnerships/{partnershipId}/shared/{document=**}
+    // Onde {partnershipId} deve ser o ID do documento onde vamos escrever.
+    // O seu código original usava doc(_activePartnershipId).collection('shared').
+    // Como _activePartnershipId no _handlePartnershipSnapshot é 'pid' (que é o MEU uid),
+    // cada usuário vai escrever no SEU PRÓPRIO documento partnerships/{meuID}/shared?
+    // NÃO. Isso separaria os dados.
+    //
+    // CORREÇÃO LÓGICA DE DADOS COMPARTILHADOS:
+    // Normalmente, dados compartilhados ficam em uma coleção separada ou em UM dos documentos.
+    // Para simplificar e manter seu código atual:
+    // Vamos assumir que ambos escrevem no documento cujo ID é 'sharedCollectionId' 
+    // OU (mais fácil com suas regras atuais): Ambos escrevem no documento de quem criou a parceria?
+    //
+    // Vamos manter a lógica simples: Os dados ficam duplicados ou centralizados?
+    // Pelo código anterior: collection('partnerships').doc(_activePartnershipId).collection('shared')
+    // Isso significa que os dados ficam no MEU documento. O parceiro não veria.
+    //
+    // CORREÇÃO DEFINITIVA: Vamos usar o 'sharedCollectionId' como o ID do documento na coleção 'shared_data' (nova root)
+    // OU, para não quebrar suas regras atuais, vamos usar o campo 'sharedCollectionId' como o ID do DOC na coleção partnerships?
+    // 
+    // Vamos adotar a estratégia do código SettingsScreen: 
+    // sharedCollectionId = "${ids[0]}_${ids[1]}_shared";
+    // Vamos usar esse ID para guardar os dados!
+    
     final base = FirebaseFirestore.instance
         .collection('partnerships')
-        .doc(_activePartnershipId)
+        .doc(_activeSharedCollectionId) // <--- MUDANÇA: Usamos o ID Comum, não o meu ID
         .collection('shared');
 
     _expensesSharedSub = base
@@ -302,11 +363,16 @@ class FinanceState with ChangeNotifier {
     _categoriesShared = [];
   }
 
+  // ==========================================================================
+  // CRUD METHODS (Com proteção contra NOT_FOUND)
+  // ==========================================================================
+
   Future<void> addExpense(Expense e) async {
+    // Itens novos vão para o compartilhado se houver parceria
     if (hasPartnership) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId) // Usar ID comum
           .collection('shared')
           .doc('expenses')
           .collection('items');
@@ -321,15 +387,19 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> updateExpense(Expense e) async {
-    if (hasPartnership) {
+    // VERIFICAÇÃO CRÍTICA: Onde está esse item?
+    final bool existsInShared = _expensesShared.any((item) => item.id == e.id);
+
+    if (hasPartnership && existsInShared) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
           .doc('expenses')
           .collection('items');
       await base.doc(e.id).update(e.toMapForFirestore());
     } else if (isLoggedIn && _firestoreService != null) {
+      // Se não está no compartilhado, tenta atualizar no privado
       await _firestoreService!.updateExpense(e);
     } else {
       await _databaseHelper.updateExpense(e);
@@ -339,10 +409,12 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> deleteExpense(String id) async {
-    if (hasPartnership) {
+    final bool existsInShared = _expensesShared.any((item) => item.id == id);
+
+    if (hasPartnership && existsInShared) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
           .doc('expenses')
           .collection('items');
@@ -362,7 +434,7 @@ class FinanceState with ChangeNotifier {
     if (hasPartnership) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
           .doc('receipts')
           .collection('items');
@@ -377,10 +449,13 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> updateReceipt(Receipt r) async {
-    if (hasPartnership) {
+    // VERIFICAÇÃO CRÍTICA
+    final bool existsInShared = _receiptsShared.any((item) => item.id == r.id);
+
+    if (hasPartnership && existsInShared) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
           .doc('receipts')
           .collection('items');
@@ -395,10 +470,12 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> deleteReceipt(String id) async {
-    if (hasPartnership) {
+    final bool existsInShared = _receiptsShared.any((item) => item.id == id);
+
+    if (hasPartnership && existsInShared) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
           .doc('receipts')
           .collection('items');
@@ -418,10 +495,9 @@ class FinanceState with ChangeNotifier {
     if (hasPartnership) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
-          .doc('products')
-          .collection('items');
+          .doc('products').collection('items');
       await base.add(p.toMapForFirestore());
     } else if (isLoggedIn && _firestoreService != null) {
       await _firestoreService!.addProduct(p);
@@ -433,10 +509,12 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> updateProduct(Product p) async {
-    if (hasPartnership) {
+    final bool existsInShared = _productsShared.any((item) => item.id == p.id);
+
+    if (hasPartnership && existsInShared) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
           .doc('products')
           .collection('items');
@@ -451,10 +529,12 @@ class FinanceState with ChangeNotifier {
   }
 
   Future<void> deleteProduct(String id) async {
-    if (hasPartnership) {
+    final bool existsInShared = _productsShared.any((item) => item.id == id);
+
+    if (hasPartnership && existsInShared) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
           .doc('products')
           .collection('items');
@@ -472,33 +552,15 @@ class FinanceState with ChangeNotifier {
 
   Future<void> toggleProductChecked(Product p, bool val) async {
     final updated = p.copyWith(isChecked: val);
-
-    if (hasPartnership) {
-      final base = FirebaseFirestore.instance
-          .collection('partnerships')
-          .doc(_activePartnershipId)
-          .collection('shared')
-          .doc('products')
-          .collection('items');
-      await base.doc(p.id).update(updated.toMapForFirestore());
-    } else if (isLoggedIn && _firestoreService != null) {
-      await _firestoreService!.updateProduct(updated);
-    } else {
-      await _databaseHelper.updateProduct(updated);
-      final idx =
-          _productsPrivate.indexWhere((e) => e.localId == updated.localId);
-      if (idx != -1) {
-        _productsPrivate[idx] = updated;
-      }
-      notifyListeners();
-    }
+    // Reutiliza a lógica segura do updateProduct
+    await updateProduct(updated);
   }
 
   Future<void> addProductCategory(ProductCategory c) async {
     if (hasPartnership) {
       final base = FirebaseFirestore.instance
           .collection('partnerships')
-          .doc(_activePartnershipId)
+          .doc(_activeSharedCollectionId)
           .collection('shared')
           .doc('productCategories')
           .collection('items');
@@ -529,4 +591,12 @@ class FinanceState with ChangeNotifier {
   double get saldoAtual => totalReceitasAtuais - totalDespesasAtuais;
 
   void forceNotify() => notifyListeners();
+
+  Future<void> updateDisplayName(String newName) async {
+    if (_firestoreService != null) {
+      await _firestoreService!.updateUserName(newName);
+      _userName = newName;
+      notifyListeners();
+    }
+  }
 }

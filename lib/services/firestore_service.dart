@@ -113,4 +113,24 @@ class FirestoreService {
 
   Future<void> addProductCategory(ProductCategory category) =>
       _productCategoriesCollection.add(category.toMapForFirestore());
+
+  Future<void> updateUserName(String name) async {
+    // Usamos set com merge para criar o documento se ele não existir
+    await _usersCollection.doc(uid).set({
+      'displayName': name,
+    }, SetOptions(merge: true));
+  }
+
+  Future<String?> getUserName(String targetUid) async {
+    try {
+      final doc = await _usersCollection.doc(targetUid).get();
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data() as Map<String, dynamic>;
+        return data['displayName'] as String?;
+      }
+    } catch (e) {
+      print('Erro ao buscar nome: $e');
+    }
+    return null;
+  }
 }

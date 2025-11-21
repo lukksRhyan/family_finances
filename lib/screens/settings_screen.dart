@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Para o Clipboard
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:qr_flutter/qr_flutter.dart'; // 1. Import para gerar QR
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/finance_state.dart';
 import 'auth_gate.dart';
 import '../styles/app_colors.dart';
-import 'qr_code_scanner_screen.dart'; // 2. Import para ler QR
+import 'qr_code_scanner_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,12 +19,50 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _partnerIdController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController(); // NOVO: Controller do nome
   bool _isLoading = false;
+  bool _isEditingName = false; // Controle de edição do nome
+
+  @override
+  void initState() {
+    super.initState();
+    // Preenche o nome atual ao iniciar
+    final state = Provider.of<FinanceState>(context, listen: false);
+    if (state.userName != null) {
+      _nameController.text = state.userName!;
+    }
+  }
 
   @override
   void dispose() {
     _partnerIdController.dispose();
+    _nameController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveName() async {
+    if (_nameController.text.trim().isEmpty) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      await Provider.of<FinanceState>(context, listen: false)
+          .updateDisplayName(_nameController.text.trim());
+      
+      if (mounted) {
+         setState(() => _isEditingName = false);
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nome atualizado!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao salvar nome: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   // ==============================================================================
@@ -38,7 +76,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    if (myUid == partnerUid) {
+    // Remove espaços em branco acidentais
+    final cleanPartnerUid = partnerUid.trim();
+
+    if (myUid == cleanPartnerUid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Você não pode parear consigo mesmo')),
       );
@@ -48,21 +89,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Gera um ID único para a coleção compartilhada
-      final String sharedCollectionId = "${myUid}_${partnerUid}_shared";
+      // Gera um ID único para a coleção compartilhada (ordem alfabética para consistência)
+      final List<String> ids = [myUid, cleanPartnerUid];
+      ids.sort();
+      final String sharedCollectionId = "${ids[0]}_${ids[1]}_shared";
 
       final batch = FirebaseFirestore.instance.batch();
 
       // 1. Define o vínculo para o MEU usuário
       final myDocRef = FirebaseFirestore.instance.collection('partnerships').doc(myUid);
       batch.set(myDocRef, {
-        'partnerId': partnerUid,
+        'partnerId': cleanPartnerUid,
         'sharedCollectionId': sharedCollectionId,
         'connectedAt': FieldValue.serverTimestamp(),
       });
 
       // 2. Define o vínculo para o usuário PARCEIRO
-      final partnerDocRef = FirebaseFirestore.instance.collection('partnerships').doc(partnerUid);
+      final partnerDocRef = FirebaseFirestore.instance.collection('partnerships').doc(cleanPartnerUid);
       batch.set(partnerDocRef, {
         'partnerId': myUid,
         'sharedCollectionId': sharedCollectionId,
@@ -84,6 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao vincular: $e')),
       );
+      print(e);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -124,10 +168,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         await batch.commit();
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vínculo removido.')),
-      );
-
       if (mounted) {
         Provider.of<FinanceState>(context, listen: false).forceNotify();
       }
@@ -148,24 +188,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  // NOVO: Função para ler QR Code do parceiro
-  Future<void> _scanPartnerQrCode() async {
+  // CORREÇÃO IMPORTANTE: Agora chama o pareamento automaticamente
+  Future<void> _scanPartnerQrCode(String myUid) async {
     final String? code = await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const QRCodeScannerScreen()),
     );
 
-    if (code != null && code.isNotEmpty) {
+    if (code != null && code.isNotEmpty && mounted) {
       setState(() {
         _partnerIdController.text = code;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Código lido com sucesso!')),
-      );
+      
+      // Chama a função de pareamento automaticamente
+      await _pairWithUser(myUid, code);
     }
   }
 
-  // NOVO: Modal para exibir meu QR Code
   void _showMyQrCode(BuildContext context, String uid) {
     showDialog(
       context: context,
@@ -210,6 +249,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final state = Provider.of<FinanceState>(context);
     final user = FirebaseAuth.instance.currentUser;
     final hasPartnership = state.hasPartnership;
+    
+    // Atualiza controller se o nome mudar externamente e não estiver editando
+    if (!_isEditingName && state.userName != null && _nameController.text != state.userName) {
+      _nameController.text = state.userName!;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.secondary,
@@ -230,36 +274,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSectionCard(
               title: "Perfil",
               children: [
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: AppColors.primary.withOpacity(0.2),
-                    child: const Icon(Icons.person, color: AppColors.primary),
-                  ),
-                  title: Text(user.email ?? 'Usuário sem email'),
-                  subtitle: const Text('Conta logada'),
-                ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await FirebaseAuth.instance.signOut();
-                      state.forceNotify();
-                      if (context.mounted) {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const AuthGate()),
-                          (_) => false,
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Sair da Conta'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade50,
-                      foregroundColor: Colors.red,
-                      elevation: 0,
-                    ),
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: AppColors.primary.withOpacity(0.2),
+                        child: const Icon(Icons.person, color: AppColors.primary, size: 30),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // EDITOR DE NOME
+                            if (_isEditingName)
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _nameController,
+                                      autofocus: true,
+                                      decoration: const InputDecoration(
+                                        hintText: "Seu nome",
+                                        isDense: true,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.check, color: Colors.green),
+                                    onPressed: _saveName,
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close, color: Colors.red),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isEditingName = false;
+                                        _nameController.text = state.userName ?? '';
+                                      });
+                                    },
+                                  ),
+                                ],
+                              )
+                            else
+                              Row(
+                                children: [
+                                  Text(
+                                    state.userName ?? 'Nome',
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, size: 16, color: Colors.grey),
+                                    onPressed: () => setState(() => _isEditingName = true),
+                                  )
+                                ],
+                              ),
+                            
+                            Text(user.email ?? '', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text('Sair da Conta', style: TextStyle(color: Colors.red)),
+                  onTap: () async {
+                    await FirebaseAuth.instance.signOut();
+                    state.forceNotify();
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AuthGate()),
+                        (_) => false,
+                      );
+                    }
+                  },
                 ),
               ],
             ),
@@ -283,15 +376,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         const Icon(Icons.check_circle, color: Colors.green, size: 40),
                         const SizedBox(height: 8),
-                        const Text(
-                          "Você está conectado!",
-                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                        Text(
+                          state.partnerName != null 
+                             ? "Conectado com ${state.partnerName}" 
+                             : "Você está conectado!",
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green, fontSize: 16),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "ID Parceiro: ${state.currentPartnerId}",
+                          "ID: ${state.currentPartnerId.substring(0, 8)}...",
                           style: const TextStyle(fontSize: 12, color: Colors.black54),
-                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -308,9 +402,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ] else ...[
                   // ESTADO: NÃO PAREADO
                   const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: Text(
-                      "Conecte-se com seu cônjuge ou familiar para gerenciar as finanças juntos.",
+                      "Conecte-se com seu parceiro(a) para sincronizar despesas.",
                       style: TextStyle(color: Colors.grey),
                     ),
                   ),
@@ -326,13 +420,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Botão para mostrar QR
                         IconButton(
-                          icon: const Icon(Icons.qr_code),
+                          icon: const Icon(Icons.qr_code, color: AppColors.primary),
                           tooltip: "Mostrar QR Code",
                           onPressed: () => _showMyQrCode(context, user.uid),
                         ),
-                        // Botão de Copiar
                         IconButton(
                           icon: const Icon(Icons.copy),
                           tooltip: "Copiar ID",
@@ -360,7 +452,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             // Botão para abrir scanner
                             suffixIcon: IconButton(
                               icon: const Icon(Icons.qr_code_scanner),
-                              onPressed: _scanPartnerQrCode,
+                              onPressed: () => _scanPartnerQrCode(user.uid),
                               tooltip: "Ler QR Code",
                             ),
                           ),
@@ -373,7 +465,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: const Text("Conectar"),
+                          child: const Text("Conectar Manualmente"),
                         ),
                       ],
                     ),
@@ -404,28 +496,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            
-          const SizedBox(height: 20),
-
-          // -------------------------------------------------------
-          // DEBUG / OUTROS
-          // -------------------------------------------------------
-          _buildSectionCard(
-            title: "Sistema",
-            children: [
-              ListTile(
-                title: const Text("Recarregar dados"),
-                subtitle: const Text("Forçar sincronização"),
-                trailing: const Icon(Icons.refresh),
-                onTap: () {
-                  state.forceNotify();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Estado atualizado')),
-                  );
-                },
-              ),
-            ],
-          ),
         ],
       ),
     );
