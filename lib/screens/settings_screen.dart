@@ -1,3 +1,4 @@
+import 'package:family_finances/screens/analysis_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -543,12 +544,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                                 child: const Text("Conectar Manualmente"),
                               ),
+
                             ],
                           ),
                         ),
                       ],
                     ],
                   ),
+
+                  _buildSectionCard(
+            title: "IA Financeira",
+            children: [
+              ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: Colors.purple,
+                  child: Icon(Icons.auto_awesome, color: Colors.white),
+                ),
+                title: const Text("Consultor Virtual"),
+                subtitle: const Text("Análise de gastos e dicas"),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  // Fecha a gaveta/settings se estiver em drawer mode, ou navega direto
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AnalysisScreen()),
+                  );
+                },
+              ),
+            ],
+          ),
 
                 if (user == null)
                   _buildSectionCard(

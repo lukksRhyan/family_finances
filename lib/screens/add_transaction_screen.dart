@@ -15,9 +15,8 @@ import '../models/receipt_category.dart';
 // Imports dos Produtos
 import '../models/product.dart';
 import '../models/product_option.dart';
-import '../models/product_category.dart'; // Importante para a categoria default
+import '../models/product_category.dart';
 
-// Imports adicionados para a funcionalidade de QR Code
 import 'qr_code_scanner_screen.dart';
 import '../services/nfce_service.dart';
 
@@ -50,10 +49,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   bool _isRecurrent = false;
   bool _isShared = false;
   
-  // Variável para controlar o loading da leitura da nota
   bool _isLoadingNfce = false;
   
-  // Lista para armazenar os produtos importados da nota
+  // Lista para armazenar os produtos
   List<Product> _importedProducts = [];
 
   RecurrencyType? _recurrencyType;
@@ -79,7 +77,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void initState() {
     super.initState();
 
-    // Atualiza automaticamente valor da parcela
     _valueController.addListener(_updateInstallmentValue);
     _installmentCountController.addListener(_updateInstallmentValue);
 
@@ -93,6 +90,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _noteController.text = e.note;
       _selectedCategory = e.category;
       _selectedDate = e.date;
+
+      // --- CORREÇÃO AQUI: Carregar produtos existentes ---
+      if (e.items.isNotEmpty) {
+        _importedProducts = List.from(e.items);
+      }
+      // ---------------------------------------------------
 
       _isInInstallments = e.isInInstallments;
       if (_isInInstallments) {
@@ -129,9 +132,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     super.dispose();
   }
 
-  // ===============================================
-  // CÁLCULO DO VALOR DAS PARCELAS
-  // ===============================================
   void _updateInstallmentValue() {
     final total = double.tryParse(_valueController.text.replaceAll(",", ".")) ?? 0;
     final count = int.tryParse(_installmentCountController.text) ?? 1;
@@ -141,9 +141,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     if (mounted) setState(() {});
   }
 
-  // ===============================================
-  // LÓGICA DE LEITURA DE NFC-E
-  // ===============================================
   Future<void> _scanAndLoadNfce() async {
     final String? url = await Navigator.push(
       context,
@@ -154,30 +151,23 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     setState(() {
       _isLoadingNfce = true;
-      _importedProducts = []; // Limpa lista anterior
+      _importedProducts = []; // Limpa lista ao escanear nova nota
     });
 
     try {
       final nfceService = NfceService();
-      // Passa um ID temporário ou vazio se sua função fetchAndParseNfce exigir, 
-      // ajustei conforme seu arquivo anterior que não pedia ID, mas o nfce_import pedia.
-      // Vou usar a versão sem ID que parece ser a mais recente no contexto.
       final nfceData = await nfceService.fetchAndParseNfce(url);
 
-      // Converte os itens da NF em objetos Product
-      // Usamos uma categoria padrão pois a NF não possui essa informação categorizada
       final defaultProductCategory = ProductCategory.indefinida;
 
       final List<Product> productsFromNote = nfceData.items.map((item) {
         return Product(
           name: item.name,
-          // Categoria obrigatória: usamos a padrão
           category: defaultProductCategory,
           isChecked: false,
-          // Criamos uma opção de produto com o preço e loja da nota
           options: [
             ProductOption(
-              brand: '', // Marca desconhecida na nota simples
+              brand: '',
               storeName: nfceData.storeName,
               price: item.unitPrice,
               quantity: item.quantity.toString(),
@@ -193,7 +183,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         _selectedDate = nfceData.date.toDate();
         _importedProducts = productsFromNote;
         
-        // Tenta adivinhar a categoria da DESPESA (não do produto)
         if (_selectedCategory == null) {
              final lowerName = nfceData.storeName.toLowerCase();
              if (lowerName.contains("mercado") || lowerName.contains("atacad") || lowerName.contains("super")) {
@@ -204,7 +193,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         }
 
         final itemsList = nfceData.items.map((i) => "- ${i.name} (${i.quantity}x)").join("\n");
-        _noteController.text = "Importado via NFC-e. Itens importados para lista de produtos.";
+        _noteController.text = "Importado via NFC-e.";
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -254,10 +243,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // =======================================================
-            // TIPO (Despesa / Receita / Compartilhado)
-            // =======================================================
             Center(
               child: Wrap(
                 spacing: 10,
@@ -314,12 +299,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const SizedBox(height: 16),
             _buildInput("Valor", "0,00", _valueController, keyboard: TextInputType.number),
 
-            // =======================================================
-            // LISTA DE PRODUTOS IMPORTADOS (Se houver)
-            // =======================================================
+            // LISTA DE PRODUTOS IMPORTADOS
             if (_importedProducts.isNotEmpty) ...[
               const SizedBox(height: 20),
-              const Text("Produtos Identificados", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Produtos", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text("${_importedProducts.length} itens", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
+              ),
               const SizedBox(height: 8),
               _buildImportedProductsList(),
             ],
@@ -341,16 +330,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             _buildDatePicker(),
 
             const SizedBox(height: 40),
-            _buildSaveButton(finance), // Botão agora será full width
+            _buildSaveButton(finance),
           ],
         ),
       ),
     );
   }
 
-  // ===============================================
-  // LISTA DE PRODUTOS IMPORTADOS (WIDGET)
-  // ===============================================
   Widget _buildImportedProductsList() {
     return Container(
       decoration: BoxDecoration(
@@ -358,14 +344,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         borderRadius: BorderRadius.circular(12),
         color: Colors.white,
       ),
-      height: 200, // Altura fixa com scroll para não ocupar tudo
+      height: 200,
       child: ListView.separated(
         padding: const EdgeInsets.all(8),
         itemCount: _importedProducts.length,
         separatorBuilder: (ctx, i) => const Divider(height: 1),
         itemBuilder: (ctx, i) {
           final product = _importedProducts[i];
-          // Recupera o preço da primeira opção (que acabamos de criar na importação)
           final double price = product.options.isNotEmpty ? product.options.first.price : 0.0;
           
           return ListTile(
@@ -382,9 +367,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  // ===============================================
-  // INPUT MODERNO
-  // ===============================================
   Widget _buildInput(
     String label,
     String hint,
@@ -423,9 +405,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  // ===============================================
-  // PARCELADO & RECORRENTE
-  // ===============================================
   Widget _buildSwitchRow() {
     return Row(
       children: [
@@ -456,9 +435,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  // ===============================================
-  // CARD DE PARCELAMENTO
-  // ===============================================
   Widget _buildInstallmentsCard() {
     final total = double.tryParse(_valueController.text.replaceAll(",", ".")) ?? 0;
     final count = int.tryParse(_installmentCountController.text) ?? 1;
@@ -505,9 +481,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  // ===============================================
-  // CARD DE RECORRÊNCIA
-  // ===============================================
   Widget _buildRecurrencyCard() {
     return Container(
       decoration: SectionStyle(),
@@ -588,9 +561,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  // ===============================================
-  // SELETOR DE CATEGORIA
-  // ===============================================
   Widget _buildCategorySelector() {
     return DropdownButtonFormField<ExpenseCategory>(
       value: _selectedCategory,
@@ -618,9 +588,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  // ===============================================
-  // DATE PICKER
-  // ===============================================
   Widget _buildDatePicker() {
     return Row(
       children: [
@@ -644,12 +611,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
-  // ===============================================
-  // SALVAR (MODIFICADO)
-  // ===============================================
   Widget _buildSaveButton(FinanceState state) {
     return SizedBox(
-      width: double.infinity, // <--- MODIFICAÇÃO: Ocupa toda a largura
+      width: double.infinity,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
@@ -689,18 +653,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   : null,
               isShared: _isShared,
               recurrencyId: widget.expenseToEdit?.recurrencyId,
+              // Passa a lista de produtos (que agora já vem preenchida no initState)
+              items: _importedProducts,
             );
 
             widget.expenseToEdit == null
                 ? await state.addExpense(exp)
                 : await state.updateExpense(exp);
-            
-            // --- Opcional: Salvar também os produtos importados no banco ---
-            // Se desejar salvar os produtos importados na lista de produtos do usuário:
-            // for (var p in _importedProducts) {
-            //    await state.addProduct(p);
-            // }
-
           } else {
             final rec = Receipt(
               id: widget.receiptToEdit?.id,

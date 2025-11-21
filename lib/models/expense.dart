@@ -1,11 +1,13 @@
 // lib/models/expense.dart
+import 'dart:convert'; // Adicionar import
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'expense_category.dart';
+import 'product.dart'; // Importar Product
 
 class Expense {
-  final String? id; // Firestore document ID (nullable)
-  final int? localId; // SQLite autoincrement ID (nullable)
+  final String? id;
+  final int? localId;
   final String title;
   final double value;
   final ExpenseCategory category;
@@ -18,6 +20,9 @@ class Expense {
   final bool isInInstallments;
   final int? installmentCount;
   final bool isShared;
+  
+  // NOVO CAMPO
+  final List<Product> items;
 
   Expense({
     this.id,
@@ -34,33 +39,40 @@ class Expense {
     required this.isInInstallments,
     this.installmentCount,
     this.isShared = false,
+    this.items = const [], // Padrão vazio
   });
 
   bool get isFuture => date.isAfter(DateTime.now());
 
-  /// Cria a partir de um mapa do Firestore. `id` é o documentId passado separadamente.
   static Expense fromMap(Map<String, dynamic> map, {String? id}) {
-    
-    // --- CORREÇÃO AQUI: Verificação de segurança para a categoria ---
     ExpenseCategory parsedCategory;
     try {
       if (map['category'] != null && map['category'] is Map) {
         parsedCategory = ExpenseCategory.fromMapFromFirestore(Map<String, dynamic>.from(map['category']));
       } else {
-        // Se for null ou inválido, usa a categoria padrão (Outros)
         parsedCategory = ExpenseCategory.defaults[0]; 
       }
     } catch (e) {
       parsedCategory = ExpenseCategory.defaults[0];
     }
-    // ----------------------------------------------------------------
+
+    // --- LÓGICA PARA RECUPERAR ITENS ---
+    List<Product> parsedItems = [];
+    if (map['items'] != null) {
+      final List rawItems = map['items'];
+      parsedItems = rawItems.map((i) => Product.fromMapFromFirestore(i, '')).toList();
+    } else if (map['itemsJson'] != null) {
+       // Fallback para SQLite se usar JSON string
+       // ... lógica de decode se necessário
+    }
+    // -----------------------------------
 
     return Expense(
       id: id,
       localId: null,
       title: map['title'] ?? '',
       value: (map['value'] is num) ? (map['value'] as num).toDouble() : 0.0,
-      category: parsedCategory, // Usa a variável tratada acima
+      category: parsedCategory,
       note: map['note'] ?? '',
       date: (map['date'] is Timestamp)
           ? (map['date'] as Timestamp).toDate()
@@ -72,10 +84,10 @@ class Expense {
       isInInstallments: map['is_in_installments'] ?? map['isInInstallments'] ?? false,
       installmentCount: map['installment_count'] ?? map['installmentCount'],
       isShared: map['isShared'] ?? false,
+      items: parsedItems, // Atribui a lista
     );
   }
 
-  /// Map usado para enviar para o Firestore
   Map<String, dynamic> toMap() {
     return {
       'title': title,
@@ -90,17 +102,17 @@ class Expense {
       'is_in_installments': isInInstallments,
       'installment_count': installmentCount,
       'isShared': isShared,
+      // Salva os itens como lista de mapas no Firestore
+      'items': items.map((p) => p.toMapForFirestore()).toList(),
     };
   }
 
-  /// Map para armazenar no SQLite (use as chaves existentes no schema)
   Map<String, dynamic> toMapForSqlite() {
     return {
-      // 'id' aqui é o Firestore ID (nullable) — não confundir com localId
       'id': id,
       'title': title,
       'value': value,
-      'category': category.toMapForSqlite(), // Isso pode precisar de ajuste dependendo de como o SQLite salva
+      'category': category.toMapForSqlite(),
       'note': note,
       'date': date.toIso8601String(),
       'isRecurrent': isRecurrent ? 1 : 0,
@@ -111,21 +123,31 @@ class Expense {
       'installmentCount': installmentCount,
       'isShared': isShared ? 1 : 0,
       'sharedFromUid': null,
+      // SQLite não aceita Arrays, convertemos para JSON String se tiver coluna
+      // Se não tiver coluna criada no database_helper, isso será ignorado pelo insert
+      'itemsJson': jsonEncode(items.map((p) => p.toMapForSqlite()).toList()),
     };
   }
 
-  /// Constrói a partir de um row do SQLite (Map resultante do db.query)
   factory Expense.fromMapForSqlite(Map<String, dynamic> map) {
     final localId = map['localId'] is int
         ? map['localId'] as int
         : (map['localId'] != null ? int.tryParse(map['localId'].toString()) : null);
+
+    // Recuperar itens do JSON string
+    List<Product> parsedItems = [];
+    if (map['itemsJson'] != null) {
+       try {
+         final List raw = jsonDecode(map['itemsJson']);
+         parsedItems = raw.map((x) => Product.fromMapForSqlite(x)).toList();
+       } catch (_) {}
+    }
 
     return Expense(
       id: map['id']?.toString(),
       localId: localId,
       title: map['title']?.toString() ?? '',
       value: (map['value'] is num) ? (map['value'] as num).toDouble() : double.tryParse(map['value']?.toString() ?? '') ?? 0.0,
-      // Assumindo que o SQLite retorna os campos da categoria ou um join
       category: ExpenseCategory.fromMapForSqlite(map['category'] ?? map), 
       note: map['note']?.toString() ?? '',
       date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
@@ -136,6 +158,7 @@ class Expense {
       isInInstallments: (map['isInInstallments'] ?? 0) == 1,
       installmentCount: map['installmentCount'] is int ? map['installmentCount'] as int : (map['installmentCount'] != null ? int.tryParse(map['installmentCount'].toString()) : null),
       isShared: (map['isShared'] ?? 0) == 1,
+      items: parsedItems,
     );
   }
 
@@ -158,6 +181,7 @@ class Expense {
     bool? isInInstallments,
     int? installmentCount,
     bool? isShared,
+    List<Product>? items, // Novo parâmetro
   }) {
     return Expense(
       id: id ?? this.id,
@@ -174,6 +198,7 @@ class Expense {
       isInInstallments: isInInstallments ?? this.isInInstallments,
       installmentCount: installmentCount ?? this.installmentCount,
       isShared: isShared ?? this.isShared,
+      items: items ?? this.items,
     );
   }
 }
