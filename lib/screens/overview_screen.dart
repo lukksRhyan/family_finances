@@ -8,7 +8,6 @@ import '../models/receipt.dart';
 
 import '../styles/app_colors.dart';
 import 'add_transaction_screen.dart';
-// 1. Importar a tela de configurações
 import 'settings_screen.dart';
 
 class OverviewScreen extends StatefulWidget {
@@ -21,7 +20,6 @@ class OverviewScreen extends StatefulWidget {
 class _OverviewScreenState extends State<OverviewScreen> {
   String _filter = "all";
   
-  // 2. Criar a chave para controlar o Scaffold e abrir a gaveta
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -45,12 +43,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
     final balance = totalReceipts - totalExpenses;
 
     return Scaffold(
-      key: _scaffoldKey, // 3. Atribuir a chave ao Scaffold
+      key: _scaffoldKey,
       backgroundColor: AppColors.secondary,
       
-      // 4. Definir o endDrawer (Gaveta da direita)
       endDrawer: const SizedBox(
-        // Define uma largura para a gaveta não ocupar 100% da tela
         width: 300, 
         child: SettingsScreen(), 
       ),
@@ -60,12 +56,10 @@ class _OverviewScreenState extends State<OverviewScreen> {
         foregroundColor: AppColors.onPrimary,
         title: const Text("Visão Geral"),
         centerTitle: true,
-        // 5. Adicionar o botão de ação para abrir a gaveta
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Abre a gaveta da direita (endDrawer)
               _scaffoldKey.currentState?.openEndDrawer();
             },
           ),
@@ -234,13 +228,16 @@ class _OverviewScreenState extends State<OverviewScreen> {
   }
 
   // =============================================================================================
-  // LIST TILE (CARD)
+  // LIST TILE (CARD) - MODIFICADO COM ONLONGPRESS
   // =============================================================================================
   Widget _buildTransactionTile(_TransactionItem t) {
     final isExpense = t.type == "expense";
 
     return GestureDetector(
       onTap: () => _openAddTransaction(context, edit: t),
+      // NOVO: Detecta o segurar para deletar
+      onLongPress: () => _confirmDelete(t),
+      
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
@@ -315,6 +312,54 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
+  // NOVO: Lógica para deletar transação
+  void _confirmDelete(_TransactionItem t) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Excluir Transação"),
+        content: Text("Tem certeza que deseja apagar '${t.title}'?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), // Fecha sem fazer nada
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx); // Fecha o diálogo
+              
+              final state = Provider.of<FinanceState>(context, listen: false);
+              
+              try {
+                if (t.type == 'expense') {
+                  // Pega ID do Firestore ou ID Local convertido para String
+                  final id = t.expense!.id ?? t.expense!.localId.toString();
+                  await state.deleteExpense(id);
+                } else {
+                  final id = t.receipt!.id ?? t.receipt!.localId.toString();
+                  await state.deleteReceipt(id);
+                }
+                
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Transação removida com sucesso")),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Erro ao remover: $e")),
+                  );
+                }
+              }
+            },
+            child: const Text("Excluir", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _buildBadges(_TransactionItem t) {
     final List<Widget> badges = [];
 
@@ -369,7 +414,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
 
 
 // =============================================================================================
-// INTERNAL WRAPPER MODEL (para unificar despesas e receitas)
+// INTERNAL WRAPPER MODEL
 // =============================================================================================
 class _TransactionItem {
   final String type; // "expense" | "receipt"

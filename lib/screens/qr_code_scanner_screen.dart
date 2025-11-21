@@ -7,7 +7,7 @@ class QRCodeScannerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ler QR Code da NFC-e')),
+      appBar: AppBar(title: const Text('Ler QR Code')),
       body: MobileScanner(
         controller: MobileScannerController(
           detectionSpeed: DetectionSpeed.noDuplicates, // Evita detecções repetidas

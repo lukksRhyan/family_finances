@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart'; // Para Timestamp
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -10,6 +11,11 @@ import '../models/expense.dart';
 import '../models/receipt.dart';
 import '../models/expense_category.dart';
 import '../models/receipt_category.dart';
+
+// Imports dos Produtos
+import '../models/product.dart';
+import '../models/product_option.dart';
+import '../models/product_category.dart'; // Importante para a categoria default
 
 // Imports adicionados para a funcionalidade de QR Code
 import 'qr_code_scanner_screen.dart';
@@ -46,6 +52,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   
   // Variável para controlar o loading da leitura da nota
   bool _isLoadingNfce = false;
+  
+  // Lista para armazenar os produtos importados da nota
+  List<Product> _importedProducts = [];
 
   RecurrencyType? _recurrencyType;
   DateTime _selectedDate = DateTime.now();
@@ -129,8 +138,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     final result = count > 0 ? (total / count) : 0;
     _installmentValueController.text = result.toStringAsFixed(2);
-    // setState não é necessário aqui se for só para atualizar o controller, 
-    // mas se afetar UI reativa, mantenha.
     if (mounted) setState(() {});
   }
 
@@ -138,7 +145,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   // LÓGICA DE LEITURA DE NFC-E
   // ===============================================
   Future<void> _scanAndLoadNfce() async {
-    // 1. Navega para a tela de scanner e aguarda o resultado (URL)
     final String? url = await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const QRCodeScannerScreen()),
@@ -148,21 +154,46 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     setState(() {
       _isLoadingNfce = true;
+      _importedProducts = []; // Limpa lista anterior
     });
 
     try {
-      // 2. Chama o serviço para processar a URL
       final nfceService = NfceService();
+      // Passa um ID temporário ou vazio se sua função fetchAndParseNfce exigir, 
+      // ajustei conforme seu arquivo anterior que não pedia ID, mas o nfce_import pedia.
+      // Vou usar a versão sem ID que parece ser a mais recente no contexto.
       final nfceData = await nfceService.fetchAndParseNfce(url);
 
-      // 3. Atualiza os campos da tela com os dados da nota
+      // Converte os itens da NF em objetos Product
+      // Usamos uma categoria padrão pois a NF não possui essa informação categorizada
+      final defaultProductCategory = ProductCategory.indefinida;
+
+      final List<Product> productsFromNote = nfceData.items.map((item) {
+        return Product(
+          name: item.name,
+          // Categoria obrigatória: usamos a padrão
+          category: defaultProductCategory,
+          isChecked: false,
+          // Criamos uma opção de produto com o preço e loja da nota
+          options: [
+            ProductOption(
+              brand: '', // Marca desconhecida na nota simples
+              storeName: nfceData.storeName,
+              price: item.unitPrice,
+              quantity: item.quantity.toString(),
+              purchaseDate: nfceData.date,
+            )
+          ],
+        );
+      }).toList();
+
       setState(() {
         _titleController.text = nfceData.storeName;
         _valueController.text = nfceData.totalValue.toStringAsFixed(2);
         _selectedDate = nfceData.date.toDate();
+        _importedProducts = productsFromNote;
         
-        // Tenta categorizar automaticamente como "Compras" ou "Comida" se possível
-        // ou mantém a seleção atual
+        // Tenta adivinhar a categoria da DESPESA (não do produto)
         if (_selectedCategory == null) {
              final lowerName = nfceData.storeName.toLowerCase();
              if (lowerName.contains("mercado") || lowerName.contains("atacad") || lowerName.contains("super")) {
@@ -172,9 +203,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
              }
         }
 
-        // Preenche a nota com os itens para referência
         final itemsList = nfceData.items.map((i) => "- ${i.name} (${i.quantity}x)").join("\n");
-        _noteController.text = "Importado via NFC-e:\n$itemsList";
+        _noteController.text = "Importado via NFC-e. Itens importados para lista de produtos.";
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -259,9 +289,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
             const SizedBox(height: 16),
 
-            // =======================================================
-            // BOTÃO DE QR CODE (Aparece apenas para Despesas)
-            // =======================================================
             if (_isExpense) 
               Center(
                 child: Padding(
@@ -287,11 +314,18 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             const SizedBox(height: 16),
             _buildInput("Valor", "0,00", _valueController, keyboard: TextInputType.number),
 
+            // =======================================================
+            // LISTA DE PRODUTOS IMPORTADOS (Se houver)
+            // =======================================================
+            if (_importedProducts.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              const Text("Produtos Identificados", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              _buildImportedProductsList(),
+            ],
+
             const SizedBox(height: 20),
 
-            // =======================================================
-            // PARCELADO / RECORRENTE
-            // =======================================================
             _buildSwitchRow(),
 
             if (_isInInstallments) _buildInstallmentsCard(),
@@ -307,9 +341,43 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
             _buildDatePicker(),
 
             const SizedBox(height: 40),
-            _buildSaveButton(finance),
+            _buildSaveButton(finance), // Botão agora será full width
           ],
         ),
+      ),
+    );
+  }
+
+  // ===============================================
+  // LISTA DE PRODUTOS IMPORTADOS (WIDGET)
+  // ===============================================
+  Widget _buildImportedProductsList() {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+      ),
+      height: 200, // Altura fixa com scroll para não ocupar tudo
+      child: ListView.separated(
+        padding: const EdgeInsets.all(8),
+        itemCount: _importedProducts.length,
+        separatorBuilder: (ctx, i) => const Divider(height: 1),
+        itemBuilder: (ctx, i) {
+          final product = _importedProducts[i];
+          // Recupera o preço da primeira opção (que acabamos de criar na importação)
+          final double price = product.options.isNotEmpty ? product.options.first.price : 0.0;
+          
+          return ListTile(
+            dense: true,
+            leading: const Icon(Icons.shopping_bag_outlined, color: AppColors.primary),
+            title: Text(product.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            trailing: Text(
+              "R\$ ${price.toStringAsFixed(2)}",
+              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+            ),
+          );
+        },
       ),
     );
   }
@@ -335,7 +403,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         TextField(
           controller: controller,
           maxLines: maxLines,
-          keyboardType:keyboard ,
+          keyboardType: keyboard,
           decoration: InputDecoration(
             hintText: hint,
             filled: true,
@@ -577,75 +645,84 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   }
 
   // ===============================================
-  // SALVAR
+  // SALVAR (MODIFICADO)
   // ===============================================
   Widget _buildSaveButton(FinanceState state) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.onPrimary,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return SizedBox(
+      width: double.infinity, // <--- MODIFICAÇÃO: Ocupa toda a largura
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.onPrimary,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: () async {
+          if (_titleController.text.isEmpty ||
+              _valueController.text.isEmpty ||
+              (_isExpense && _selectedCategory == null)) {
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Preencha os campos obrigatórios (Título, Valor, Categoria)")),
+            );
+            return;
+          }
+
+          final value = double.tryParse(_valueController.text.replaceAll(",", ".")) ?? 0;
+
+          if (_isExpense) {
+            final exp = Expense(
+              id: widget.expenseToEdit?.id,
+              title: _titleController.text,
+              value: value,
+              note: _noteController.text,
+              category: _selectedCategory!,
+              date: _selectedDate,
+              isInInstallments: _isInInstallments,
+              installmentCount: _isInInstallments
+                  ? int.tryParse(_installmentCountController.text)
+                  : null,
+              isRecurrent: _isRecurrent,
+              recurrencyType: _recurrencyType?.index,
+              recurrentIntervalDays: _recurrencyType == RecurrencyType.custom
+                  ? int.tryParse(_intervalController.text)
+                  : null,
+              isShared: _isShared,
+              recurrencyId: widget.expenseToEdit?.recurrencyId,
+            );
+
+            widget.expenseToEdit == null
+                ? await state.addExpense(exp)
+                : await state.updateExpense(exp);
+            
+            // --- Opcional: Salvar também os produtos importados no banco ---
+            // Se desejar salvar os produtos importados na lista de produtos do usuário:
+            // for (var p in _importedProducts) {
+            //    await state.addProduct(p);
+            // }
+
+          } else {
+            final rec = Receipt(
+              id: widget.receiptToEdit?.id,
+              title: _titleController.text,
+              value: value,
+              category: ReceiptCategory(name: "Outros", icon: Icons.category),
+              note: _noteController.text,
+              date: _selectedDate,
+              isRecurrent: _isRecurrent,
+              recurrencyType: _recurrencyType?.index,
+              isShared: _isShared,
+            );
+
+            widget.receiptToEdit == null
+                ? await state.addReceipt(rec)
+                : await state.updateReceipt(rec);
+          }
+
+          if (mounted) Navigator.pop(context);
+        },
+        child: const Text("Salvar", style: TextStyle(fontSize: 18)),
       ),
-      onPressed: () async {
-        if (_titleController.text.isEmpty ||
-            _valueController.text.isEmpty ||
-            (_isExpense && _selectedCategory == null)) {
-          
-          // Feedback se faltar dados
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Preencha os campos obrigatórios (Título, Valor, Categoria)")),
-          );
-          return;
-        }
-
-        final value = double.tryParse(_valueController.text.replaceAll(",", ".")) ?? 0;
-
-        if (_isExpense) {
-          final exp = Expense(
-            id: widget.expenseToEdit?.id,
-            title: _titleController.text,
-            value: value,
-            note: _noteController.text,
-            category: _selectedCategory!,
-            date: _selectedDate,
-            isInInstallments: _isInInstallments,
-            installmentCount: _isInInstallments
-                ? int.tryParse(_installmentCountController.text)
-                : null,
-            isRecurrent: _isRecurrent,
-            recurrencyType: _recurrencyType?.index,
-            recurrentIntervalDays: _recurrencyType == RecurrencyType.custom
-                ? int.tryParse(_intervalController.text)
-                : null,
-            isShared: _isShared,
-            recurrencyId: widget.expenseToEdit?.recurrencyId,
-          );
-
-          widget.expenseToEdit == null
-              ? await state.addExpense(exp)
-              : await state.updateExpense(exp);
-        } else {
-          final rec = Receipt(
-            id: widget.receiptToEdit?.id,
-            title: _titleController.text,
-            value: value,
-            category: ReceiptCategory(name: "Outros", icon: Icons.category),
-            note: _noteController.text,
-            date: _selectedDate,
-            isRecurrent: _isRecurrent,
-            recurrencyType: _recurrencyType?.index,
-            isShared: _isShared,
-          );
-
-          widget.receiptToEdit == null
-              ? await state.addReceipt(rec)
-              : await state.updateReceipt(rec);
-        }
-
-        if (mounted) Navigator.pop(context);
-      },
-      child: const Text("Salvar", style: TextStyle(fontSize: 18)),
     );
   }
 }

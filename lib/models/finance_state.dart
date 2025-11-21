@@ -33,6 +33,7 @@ class FinanceState with ChangeNotifier {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _categoriesSharedSub;
   
   StreamSubscription<DocumentSnapshot>? _partnershipSnapSub;
+  StreamSubscription<DocumentSnapshot>? _partnerUserSub;
 
   String? _uid;
   bool _isLoading = true;
@@ -134,6 +135,9 @@ class FinanceState with ChangeNotifier {
     await _categoriesPrivateSub?.cancel();
     await _categoriesSharedSub?.cancel();
     await _partnershipSnapSub?.cancel();
+    
+    // NOVO: Cancelar assinatura do parceiro
+    await _partnerUserSub?.cancel(); 
 
     _expensesPrivateSub = null;
     _expensesSharedSub = null;
@@ -144,6 +148,7 @@ class FinanceState with ChangeNotifier {
     _categoriesPrivateSub = null;
     _categoriesSharedSub = null;
     _partnershipSnapSub = null;
+    _partnerUserSub = null; // Limpa variável
 
     _activePartnershipId = null;
     _activeSharedCollectionId = null;
@@ -169,19 +174,27 @@ class FinanceState with ChangeNotifier {
     notifyListeners();
   }
 
-  void _initializeCloud(String uid) {
+ void _initializeCloud(String uid) async { // Adicione async aqui
     _isLoading = true;
     notifyListeners();
 
     _firestoreService = FirestoreService(uid: uid);
 
-    // 1. Carrega o nome do usuário atual
+    // --- NOVO: AUTOCORREÇÃO ---
+    // Verifica se o documento do usuário existe, se não, recria.
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      await _firestoreService!.ensureUserDocumentExists(currentUser);
+    }
+    // --------------------------
+
+    // 1. Carrega o nome do usuário atual (agora seguro, pois criamos o doc acima se necessário)
     _firestoreService!.getUserName(uid).then((name) {
       _userName = name;
       notifyListeners();
     });
 
-    // Cancela assinatura anterior se houver para evitar duplicidade
+    // Cancela assinatura anterior se houver
     _partnershipSnapSub?.cancel();
     
     _partnershipSnapSub = FirebaseFirestore.instance
@@ -194,6 +207,7 @@ class FinanceState with ChangeNotifier {
 
     _subscribePrivateCollections();
 
+    // Pequeno delay visual
     Future.delayed(const Duration(milliseconds: 500), () {
       _isLoading = false;
       notifyListeners();
@@ -202,11 +216,14 @@ class FinanceState with ChangeNotifier {
 
   void _handlePartnershipSnapshot(DocumentSnapshot snap) {
     if (!snap.exists) {
-      // Se o documento foi deletado ou não existe, limpa tudo
       if (_activeSharedCollectionId != null) {
         _activePartnershipId = null;
         _activeSharedCollectionId = null;
         _partnerName = null;
+        
+        _partnerUserSub?.cancel(); // Cancela listener antigo
+        _partnerUserSub = null;
+
         _unsubscribeSharedCollections();
         _clearShared();
         notifyListeners();
@@ -217,23 +234,34 @@ class FinanceState with ChangeNotifier {
     final data = snap.data() as Map<String, dynamic>;
     final sharedId = data['sharedCollectionId'];
     final partnerId = data['partnerId']; 
-    final pid = snap.id; // Meu ID (doc id)
+    final pid = snap.id; 
 
-    // Se mudou o ID compartilhado ou ainda não tínhamos um
+    // Se mudou o ID compartilhado ou o Parceiro
     if (_activeSharedCollectionId != sharedId) {
       _activePartnershipId = pid;
       _activeSharedCollectionId = sharedId;
-
-      // Busca o nome do parceiro
-      if (partnerId != null && _firestoreService != null) {
-        _firestoreService!.getUserName(partnerId).then((name) {
-          _partnerName = name;
-          notifyListeners();
-        });
-      }
-
       _subscribeSharedCollections();
-      notifyListeners();
+    }
+    
+    // LÓGICA DE NOME DO PARCEIRO EM TEMPO REAL
+    if (partnerId != null) {
+      // Se já estamos ouvindo esse parceiro, não faz nada. Se mudou, recria.
+      // (Aqui simplificado para sempre recriar se partnerId existir para garantir update)
+      _partnerUserSub?.cancel();
+      
+      _partnerUserSub = FirebaseFirestore.instance
+          .collection('users')
+          .doc(partnerId)
+          .snapshots()
+          .listen((userSnap) {
+            if (userSnap.exists) {
+              final userData = userSnap.data();
+              _partnerName = userData?['displayName'] ?? 'Parceiro';
+            } else {
+              _partnerName = 'Parceiro (Pendente)';
+            }
+            notifyListeners();
+          });
     }
   }
 

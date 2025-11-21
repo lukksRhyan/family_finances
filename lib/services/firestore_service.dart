@@ -1,5 +1,6 @@
 // lib/services/firestore_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/expense.dart';
 import '../models/receipt.dart';
 import '../models/product.dart';
@@ -132,5 +133,18 @@ class FirestoreService {
       print('Erro ao buscar nome: $e');
     }
     return null;
+  }
+  Future<void> ensureUserDocumentExists(User user) async {
+    final docRef = _usersCollection.doc(user.uid);
+    final docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      // Se o documento não existe (foi apagado), recria com dados básicos
+      await docRef.set({
+        'displayName': user.displayName ?? user.email?.split('@')[0] ?? 'Usuário',
+        'email': user.email,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
   }
 }
