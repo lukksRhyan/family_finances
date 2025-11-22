@@ -215,6 +215,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget build(BuildContext context) {
     final finance = Provider.of<FinanceState>(context, listen: false);
     final hasPartner = finance.hasPartnership;
+    _isShared = hasPartner;
+
+
 
     return Scaffold(
       backgroundColor: AppColors.secondary,
