@@ -27,28 +27,60 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
       final state = Provider.of<FinanceState>(context, listen: false);
       final gemini = GeminiService();
 
-      // 1. Preparar dados das despesas por categoria
+      // 1. Dados Macro (Categorias)
       final Map<String, double> breakdown = {};
+      
+      // 2. Mineração de Produtos (Agrupar itens iguais e somar valor)
+      final Map<String, double> productStats = {};
+
       for (var e in state.expenses) {
-        // Considera apenas despesas atuais (não futuras)
-        if (!e.isFuture) {
-          breakdown[e.category.name] = (breakdown[e.category.name] ?? 0) + e.value;
+        if (e.isFuture) continue;
+
+        // Soma Categoria
+        breakdown[e.category.name] = (breakdown[e.category.name] ?? 0) + e.value;
+
+        // Soma Produtos Individuais (se houver itens na despesa)
+        if (e.items.isNotEmpty) {
+          for (var item in e.items) {
+            // Tenta pegar o preço da opção de compra
+            if (item.options.isNotEmpty) {
+              final opt = item.options.first;
+              final qty = double.tryParse(opt.quantity) ?? 1.0;
+              final totalItemValue = opt.price * qty;
+              
+              // Normaliza o nome (remove espaços extras e deixa minúsculo para agrupar)
+              final cleanName = item.name.trim().toUpperCase();
+              productStats[cleanName] = (productStats[cleanName] ?? 0) + totalItemValue;
+            }
+          }
         }
       }
 
-      // 2. Pegar amostra de transações recentes (últimas 5)
+      // 3. Preparar String dos Top Produtos (Ordena por valor decrescente)
+      final sortedProducts = productStats.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      
+      // Pega os top 30 produtos para não estourar o limite de texto da IA
+      final topProductsString = sortedProducts.take(30).map((e) {
+        return "- ${e.key}: R\$ ${e.value.toStringAsFixed(2)}";
+      }).join('\n');
+
+      // 4. Amostra de Transações Recentes
       final recent = state.expenses
           .where((e) => !e.isFuture)
           .take(5)
           .map((e) => "${e.title} (R\$ ${e.value.toStringAsFixed(2)})")
           .toList();
 
-      // 3. Chamar IA
+      // 5. Chamar IA
       final result = await gemini.generateFinancialAnalysis(
         totalIncome: state.totalReceitasAtuais,
         totalExpense: state.totalDespesasAtuais,
         categoryBreakdown: breakdown,
         recentTransactions: recent,
+        productHighlights: topProductsString.isEmpty 
+            ? "Nenhum produto detalhado disponível." 
+            : topProductsString,
       );
 
       if (mounted) {

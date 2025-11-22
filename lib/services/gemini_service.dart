@@ -6,49 +6,52 @@ class GeminiService {
   static const _apiKey = String.fromEnvironment('GEMINI_API_KEY');
   final String _apiUrl;
 
-  // CORREÇÃO FINAL: Usando o modelo exato listado no seu terminal
+  // Mantendo o modelo que funcionou para você
   GeminiService() : _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_apiKey';
 
-  // --- NOVO MÉTODO: Análise Financeira ---
   Future<String> generateFinancialAnalysis({
     required double totalIncome,
     required double totalExpense,
     required Map<String, double> categoryBreakdown,
     required List<String> recentTransactions,
+    required String productHighlights, // <--- NOVO PARÂMETRO
   }) async {
 
     if (_apiKey.isEmpty) {
       return "⚠️ Erro: Chave de API não configurada. Verifique o launch.json.";
     }
     
-    // 1. Construção do Prompt
     final breakdownString = categoryBreakdown.entries
         .map((e) => "- ${e.key}: R\$ ${e.value.toStringAsFixed(2)}")
         .join('\n');
 
     final recentString = recentTransactions.join('\n');
 
+    // ATUALIZAÇÃO DO PROMPT
     final prompt = """
-      Atue como um consultor financeiro pessoal experiente e empático. Analise os dados financeiros abaixo do meu mês atual e gere um relatório curto e prático.
+      Atue como um consultor financeiro pessoal experiente, direto e empático. Analise os dados financeiros do meu mês atual.
       
-      DADOS:
-      - Receita Total: R\$ ${totalIncome.toStringAsFixed(2)}
-      - Despesa Total: R\$ ${totalExpense.toStringAsFixed(2)}
+      DADOS GERAIS:
+      - Receita: R\$ ${totalIncome.toStringAsFixed(2)}
+      - Despesa: R\$ ${totalExpense.toStringAsFixed(2)}
       - Saldo: R\$ ${(totalIncome - totalExpense).toStringAsFixed(2)}
       
       GASTOS POR CATEGORIA:
       $breakdownString
 
-      ÚLTIMAS TRANSAÇÕES (Amostra):
+      PRINCIPAIS PRODUTOS/ITENS COMPRADOS (Detalhe do que compõe as despesas):
+      $productHighlights
+
+      ÚLTIMAS TRANSAÇÕES MACRO:
       $recentString
 
       TAREFA:
-      1. Resumo da Situação: Diga se estou no azul ou vermelho e quão saudável isso parece.
-      2. Análise de Gastos: Aponte onde estou gastando muito (baseado nas categorias).
-      3. Dicas Práticas: Dê 3 sugestões concretas para economizar no próximo mês baseadas nesses dados específicos.
+      1. Resumo: Breve diagnóstico da saúde financeira.
+      2. Análise de Hábitos (IMPORTANTE): Olhe para a lista de PRODUTOS. Identifique se há gastos supérfluos específicos (ex: muito gasto com bebida, doces, ou marcas caras) ou se os gastos são essenciais. Seja específico citando os produtos.
+      3. Dicas Práticas: 3 ações concretas para economizar baseadas nesses produtos e categorias.
       
       FORMATO:
-      Responda em Markdown (use negrito, tópicos). Seja direto, amigável e use emojis.
+      Markdown (negrito, tópicos). Use emojis. Seja curto e vá direto ao ponto.
     """;
 
     final payload = {
@@ -75,6 +78,4 @@ class GeminiService {
       return "Erro de conexão: $e";
     }
   }
-  
-  // Pode remover ou manter a função listAvailableModels se quiser usar no futuro para debug
 }
