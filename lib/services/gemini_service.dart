@@ -6,8 +6,8 @@ class GeminiService {
   static const _apiKey = String.fromEnvironment('GEMINI_API_KEY');
   final String _apiUrl;
 
-  // CORREÇÃO AQUI: Removido "-latest" do nome do modelo
-  GeminiService() : _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$_apiKey';
+  // CORREÇÃO FINAL: Usando o modelo exato listado no seu terminal
+  GeminiService() : _apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$_apiKey';
 
   // --- NOVO MÉTODO: Análise Financeira ---
   Future<String> generateFinancialAnalysis({
@@ -72,8 +72,9 @@ class GeminiService {
         return "Erro na API (${response.statusCode}): ${response.body}";
       }
     } catch (e) {
-      print(e);
       return "Erro de conexão: $e";
     }
   }
+  
+  // Pode remover ou manter a função listAvailableModels se quiser usar no futuro para debug
 }
